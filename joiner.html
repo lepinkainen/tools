@@ -2,132 +2,26 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MediaJoiner</title>
+    <link rel="stylesheet" href="../common.css" />
     <style>
-      @import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap");
-
-      body {
-        font-family: "Orbitron", monospace;
-        background: linear-gradient(
-          135deg,
-          #0a0a0a 0%,
-          #1a1a2e 50%,
-          #16213e 100%
-        );
-        color: #00ff41;
-        text-align: center;
-        margin: 0;
-        padding: 20px;
-        min-height: 100vh;
-        overflow-x: auto;
-      }
-      h1 {
-        font-weight: 900;
-        font-size: 3em;
-        text-shadow: 0 0 10px #00ff41, 0 0 20px #00ff41, 0 0 30px #00ff41;
-        margin-bottom: 30px;
-        letter-spacing: 2px;
-      }
-      #dropZone {
-        border: 2px dashed #00ff41;
-        padding: 30px;
-        margin: 20px auto;
-        max-width: 600px;
-        border-radius: 10px;
-        background: rgba(0, 255, 65, 0.05);
-        transition: all 0.3s ease;
-        box-shadow: 0 0 20px rgba(0, 255, 65, 0.1);
-      }
-      #dropZone:hover {
-        border-color: #ff00ff;
-        box-shadow: 0 0 30px rgba(255, 0, 255, 0.3);
-        background: rgba(255, 0, 255, 0.05);
-      }
+      /* Tool-specific styles */
       #dropZone.dragover {
         border-color: #00bfff;
         box-shadow: 0 0 30px rgba(0, 191, 255, 0.3);
         background: rgba(0, 191, 255, 0.05);
       }
-      input[type="file"] {
-        margin: 10px;
-        padding: 10px;
-        background: rgba(0, 255, 65, 0.1);
-        border: 1px solid #00ff41;
-        border-radius: 5px;
-        color: #00ff41;
-        font-family: inherit;
-      }
-      input[type="file"]::file-selector-button {
-        background: #00ff41;
-        color: #0a0a0a;
-        border: none;
-        padding: 5px 10px;
-        border-radius: 3px;
-        cursor: pointer;
-        font-family: inherit;
-      }
-      button {
-        margin: 10px;
-        padding: 12px 24px;
-        background: transparent;
-        border: 2px solid #00ff41;
-        border-radius: 5px;
-        color: #00ff41;
-        font-family: inherit;
-        font-weight: 700;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-      }
-      button:hover {
-        border-color: #ff00ff;
-        color: #ff00ff;
-        box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
-        background: rgba(255, 0, 255, 0.1);
-      }
-      #downloadBtn {
-        background: transparent;
-        border: 2px solid #00bfff;
-        color: #00bfff;
-        margin-top: 10px;
-      }
-      #downloadBtn:hover {
-        border-color: #ff00ff;
-        color: #ff00ff;
-        box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
-        background: rgba(255, 0, 255, 0.1);
-      }
-      canvas,
-      video,
-      img {
-        max-width: 100%;
-        border: 1px solid #00ff41;
-        border-radius: 5px;
-        box-shadow: 0 0 10px rgba(0, 255, 65, 0.2);
-        margin: 10px 0;
-      }
-      #output {
-        margin-top: 20px;
-        padding: 20px;
-        background: rgba(0, 255, 65, 0.05);
-        border-radius: 10px;
-        border: 1px solid rgba(0, 255, 65, 0.2);
-      }
-      p {
-        font-size: 1.1em;
-        margin: 10px 0;
-      }
     </style>
   </head>
   <body>
     <h1>MediaJoiner</h1>
-    <div id="dropZone">Drag A and B here (images/videos)</div>
+    <div id="dropZone" class="box">Drag A and B here (images/videos)</div>
     <input type="file" id="fileInputA" accept="image/*,video/*" multiple />
     <input type="file" id="fileInputB" accept="image/*,video/*" multiple />
     <br />
     <button onclick="generate()">Generate</button>
-    <div id="output"></div>
+    <div id="output" class="output"></div>
 
     <script>
       let mediaA = null,
@@ -237,7 +131,7 @@
           outputUrl = canvas.toDataURL("image/png");
           output.innerHTML = `
                     <img src="${outputUrl}" alt="Result">
-                    <br><button id="downloadBtn" onclick="downloadOutput()">Download ${outputFilename}</button>
+                    <br><button id="downloadBtn" class="secondary" onclick="downloadOutput()">Download ${outputFilename}</button>
                 `;
         } else {
           // Video output: Composite and record
@@ -268,7 +162,7 @@
             outputUrl = URL.createObjectURL(blob);
             output.innerHTML = `
                         <video src="${outputUrl}" controls autoplay></video>
-                        <br><button id="downloadBtn" onclick="downloadOutput()">Download ${outputFilename}</button>
+                        <br><button id="downloadBtn" class="secondary" onclick="downloadOutput()">Download ${outputFilename}</button>
                     `;
           };
 
