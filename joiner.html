@@ -30,7 +30,7 @@
           <input type="file" id="fileInputA" accept="image/*,video/*" />
           <p id="fileAStatus" style="font-size: 0.9em; margin-top: 5px; min-height: 1.2em;">No file selected</p>
           <div style="margin: 8px 0 0; display: flex; gap: 8px; flex-wrap: wrap;">
-            <button type="button" class="secondary" onclick="clearSlot(true)">Clear A</button>
+            <button type="button" id="clearABtn" class="secondary" onclick="clearSlot(true)">Clear A</button>
           </div>
           <div id="previewA" style="margin-top: 10px; min-height: 120px; border: 1px dashed rgba(255, 255, 255, 0.2); padding: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden;"></div>
         </div>
@@ -39,14 +39,14 @@
           <input type="file" id="fileInputB" accept="image/*,video/*" />
           <p id="fileBStatus" style="font-size: 0.9em; margin-top: 5px; min-height: 1.2em;">No file selected</p>
           <div style="margin: 8px 0 0; display: flex; gap: 8px; flex-wrap: wrap;">
-            <button type="button" class="secondary" onclick="clearSlot(false)">Clear B</button>
+            <button type="button" id="clearBBtn" class="secondary" onclick="clearSlot(false)">Clear B</button>
           </div>
           <div id="previewB" style="margin-top: 10px; min-height: 120px; border: 1px dashed rgba(255, 255, 255, 0.2); padding: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden;"></div>
         </div>
       </div>
 
       <div style="display: flex; justify-content: center; gap: 12px; margin-bottom: 20px;">
-        <button type="button" class="secondary" onclick="swapMedia()">Swap A ↔ B</button>
+        <button type="button" id="swapBtn" class="secondary" onclick="swapMedia()">Swap A ↔ B</button>
       </div>
 
       <div id="error" style="display: none; color: #ff0000; background: rgba(255, 0, 0, 0.1); padding: 12px; border-radius: 5px; margin: 10px 0;"></div>
@@ -355,6 +355,14 @@
         generateBtn.disabled = true;
         generateBtn.textContent = "Generating...";
 
+        // Disable slot controls during generation to prevent race condition
+        const clearABtn = document.getElementById("clearABtn");
+        const clearBBtn = document.getElementById("clearBBtn");
+        const swapBtn = document.getElementById("swapBtn");
+        clearABtn.disabled = true;
+        clearBBtn.disabled = true;
+        swapBtn.disabled = true;
+
         try {
           const [hashA, hashB] = await Promise.all([
             hashFile(fileA),
@@ -586,6 +594,11 @@
         } finally {
           generateBtn.disabled = false;
           generateBtn.textContent = "Generate";
+
+          // Re-enable slot controls after generation completes
+          clearABtn.disabled = false;
+          clearBBtn.disabled = false;
+          swapBtn.disabled = false;
         }
       }
 
