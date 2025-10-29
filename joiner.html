@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>MediaJoiner</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap");
+
+      body {
+        font-family: "Orbitron", monospace;
+        background: linear-gradient(
+          135deg,
+          #0a0a0a 0%,
+          #1a1a2e 50%,
+          #16213e 100%
+        );
+        color: #00ff41;
+        text-align: center;
+        margin: 0;
+        padding: 20px;
+        min-height: 100vh;
+        overflow-x: auto;
+      }
+      h1 {
+        font-weight: 900;
+        font-size: 3em;
+        text-shadow: 0 0 10px #00ff41, 0 0 20px #00ff41, 0 0 30px #00ff41;
+        margin-bottom: 30px;
+        letter-spacing: 2px;
+      }
+      #dropZone {
+        border: 2px dashed #00ff41;
+        padding: 30px;
+        margin: 20px auto;
+        max-width: 600px;
+        border-radius: 10px;
+        background: rgba(0, 255, 65, 0.05);
+        transition: all 0.3s ease;
+        box-shadow: 0 0 20px rgba(0, 255, 65, 0.1);
+      }
+      #dropZone:hover {
+        border-color: #ff00ff;
+        box-shadow: 0 0 30px rgba(255, 0, 255, 0.3);
+        background: rgba(255, 0, 255, 0.05);
+      }
+      #dropZone.dragover {
+        border-color: #00bfff;
+        box-shadow: 0 0 30px rgba(0, 191, 255, 0.3);
+        background: rgba(0, 191, 255, 0.05);
+      }
+      input[type="file"] {
+        margin: 10px;
+        padding: 10px;
+        background: rgba(0, 255, 65, 0.1);
+        border: 1px solid #00ff41;
+        border-radius: 5px;
+        color: #00ff41;
+        font-family: inherit;
+      }
+      input[type="file"]::file-selector-button {
+        background: #00ff41;
+        color: #0a0a0a;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      button {
+        margin: 10px;
+        padding: 12px 24px;
+        background: transparent;
+        border: 2px solid #00ff41;
+        border-radius: 5px;
+        color: #00ff41;
+        font-family: inherit;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      button:hover {
+        border-color: #ff00ff;
+        color: #ff00ff;
+        box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
+        background: rgba(255, 0, 255, 0.1);
+      }
+      #downloadBtn {
+        background: transparent;
+        border: 2px solid #00bfff;
+        color: #00bfff;
+        margin-top: 10px;
+      }
+      #downloadBtn:hover {
+        border-color: #ff00ff;
+        color: #ff00ff;
+        box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
+        background: rgba(255, 0, 255, 0.1);
+      }
+      canvas,
+      video,
+      img {
+        max-width: 100%;
+        border: 1px solid #00ff41;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0, 255, 65, 0.2);
+        margin: 10px 0;
+      }
+      #output {
+        margin-top: 20px;
+        padding: 20px;
+        background: rgba(0, 255, 65, 0.05);
+        border-radius: 10px;
+        border: 1px solid rgba(0, 255, 65, 0.2);
+      }
+      p {
+        font-size: 1.1em;
+        margin: 10px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>MediaJoiner</h1>
+    <div id="dropZone">Drag A and B here (images/videos)</div>
+    <input type="file" id="fileInputA" accept="image/*,video/*" multiple />
+    <input type="file" id="fileInputB" accept="image/*,video/*" multiple />
+    <br />
+    <button onclick="generate()">Generate</button>
+    <div id="output"></div>
+
+    <script>
+      let mediaA = null,
+        mediaB = null;
+      let fileA = null,
+        fileB = null; // Store original File objects for hashing
+      let outputUrl = null; // Store the generated blob URL
+      let outputFilename = null; // Store the filename
+
+      // Drag-and-drop setup (simplified)
+      const dropZone = document.getElementById("dropZone");
+      dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.classList.add("dragover");
+      });
+      dropZone.addEventListener("dragleave", () =>
+        dropZone.classList.remove("dragover")
+      );
+      dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropZone.classList.remove("dragover");
+        const files = Array.from(e.dataTransfer.files);
+        assignFiles(files);
+      });
+      document
+        .getElementById("fileInputA")
+        .addEventListener("change", (e) => assignFiles(e.target.files, true));
+      document
+        .getElementById("fileInputB")
+        .addEventListener("change", (e) => assignFiles(e.target.files, false));
+
+      function assignFiles(files, isA = null) {
+        if (files.length !== 1) return alert("One file per input");
+        const file = files[0];
+        const isVideo = file.type.startsWith("video/");
+        const media = isVideo
+          ? document.createElement("video")
+          : document.createElement("img");
+        media.src = URL.createObjectURL(file);
+        const loadHandler = isVideo ? "onloadedmetadata" : "onload";
+        media[loadHandler] = () => {
+          // Wait for load/metadata
+          if (isA) {
+            mediaA = media;
+            fileA = file;
+          } else {
+            mediaB = media;
+            fileB = file;
+          }
+          console.log(`${isA ? "A" : "B"} loaded:`, media);
+        };
+      }
+
+      function getDimensions(media) {
+        if (media.tagName === "VIDEO") {
+          return [
+            media.videoWidth || media.naturalWidth || 0,
+            media.videoHeight || media.naturalHeight || 0,
+          ];
+        } else {
+          return [media.naturalWidth, media.naturalHeight];
+        }
+      }
+
+      // Hash a file using SHA-256 (first 8 hex chars for brevity)
+      async function hashFile(file) {
+        const buffer = await file.arrayBuffer();
+        const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("")
+          .slice(0, 8);
+      }
+
+      async function generate() {
+        if (!mediaA || !mediaB || !fileA || !fileB)
+          return alert("Load A and B first");
+
+        const output = document.getElementById("output");
+        output.innerHTML = "<p>Generating...</p>";
+
+        // Compute unique hash from both files
+        const [hashA, hashB] = await Promise.all([
+          hashFile(fileA),
+          hashFile(fileB),
+        ]);
+        const combinedHash = `${hashA}-${hashB}`;
+        const isVideoOut =
+          mediaA.tagName === "VIDEO" || mediaB.tagName === "VIDEO";
+        const ext = isVideoOut ? ".webm" : ".png";
+        outputFilename = `mjgen-${combinedHash}${ext}`; // Updated prefix to mjgen for MediaJoiner
+
+        const [w1, h1] = getDimensions(mediaA);
+        const [w2, h2] = getDimensions(mediaB);
+        if (w1 === 0 || w2 === 0) return alert("Invalid media dimensions");
+
+        if (!isVideoOut) {
+          // Static image output
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          const maxH = Math.max(h1, h2);
+          canvas.width = w1 + w2;
+          canvas.height = maxH;
+          ctx.drawImage(mediaA, 0, (maxH - h1) / 2);
+          ctx.drawImage(mediaB, w1, (maxH - h2) / 2);
+          outputUrl = canvas.toDataURL("image/png");
+          output.innerHTML = `
+                    <img src="${outputUrl}" alt="Result">
+                    <br><button id="downloadBtn" onclick="downloadOutput()">Download ${outputFilename}</button>
+                `;
+        } else {
+          // Video output: Composite and record
+          let duration = Infinity;
+          if (mediaA.tagName === "VIDEO")
+            duration = Math.min(duration, mediaA.duration);
+          if (mediaB.tagName === "VIDEO")
+            duration = Math.min(duration, mediaB.duration);
+          if (isNaN(duration) || duration <= 0)
+            return alert("Invalid video duration");
+
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          const maxH = Math.max(h1, h2);
+          canvas.width = w1 + w2;
+          canvas.height = maxH;
+
+          // Get stream from canvas for recording
+          const stream = canvas.captureStream(30); // 30 FPS
+          const recorder = new MediaRecorder(stream, {
+            mimeType: "video/webm;codecs=vp9",
+          });
+          const chunks = [];
+
+          recorder.ondataavailable = (e) => chunks.push(e.data);
+          recorder.onstop = () => {
+            const blob = new Blob(chunks, { type: "video/webm" });
+            outputUrl = URL.createObjectURL(blob);
+            output.innerHTML = `
+                        <video src="${outputUrl}" controls autoplay></video>
+                        <br><button id="downloadBtn" onclick="downloadOutput()">Download ${outputFilename}</button>
+                    `;
+          };
+
+          // Play only video elements
+          if (mediaA.tagName === "VIDEO") mediaA.play();
+          if (mediaB.tagName === "VIDEO") mediaB.play();
+
+          // Sync draw frames
+          let startTime = null;
+          function drawFrame(timestamp) {
+            if (!startTime) startTime = timestamp;
+            const elapsed = (timestamp - startTime) / 1000;
+            if (elapsed > duration) {
+              recorder.stop();
+              // Pause videos to clean up
+              if (mediaA.tagName === "VIDEO") mediaA.pause();
+              if (mediaB.tagName === "VIDEO") mediaB.pause();
+              return;
+            }
+
+            const t = elapsed;
+            // Set time only for videos
+            if (mediaA.tagName === "VIDEO") mediaA.currentTime = t;
+            if (mediaB.tagName === "VIDEO") mediaB.currentTime = t;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(mediaA, 0, (maxH - h1) / 2);
+            ctx.drawImage(mediaB, w1, (maxH - h2) / 2);
+            requestAnimationFrame(drawFrame);
+          }
+
+          recorder.start();
+          requestAnimationFrame(drawFrame);
+        }
+      }
+
+      function downloadOutput() {
+        if (!outputUrl || !outputFilename)
+          return alert("No output to download");
+        downloadBlob(outputUrl, outputFilename);
+      }
+
+      function downloadBlob(url, filename) {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
+      }
+    </script>
+  </body>
+</html>
