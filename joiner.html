@@ -28,18 +28,30 @@
         <div>
           <label for="fileInputA">File A:</label>
           <input type="file" id="fileInputA" accept="image/*,video/*" />
-          <p id="fileAStatus" style="font-size: 0.9em; margin-top: 5px; min-height: 1.2em;"></p>
+          <p id="fileAStatus" style="font-size: 0.9em; margin-top: 5px; min-height: 1.2em;">No file selected</p>
+          <div style="margin: 8px 0 0; display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" class="secondary" onclick="clearSlot(true)">Clear A</button>
+          </div>
+          <div id="previewA" style="margin-top: 10px; min-height: 120px; border: 1px dashed rgba(255, 255, 255, 0.2); padding: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden;"></div>
         </div>
         <div>
           <label for="fileInputB">File B:</label>
           <input type="file" id="fileInputB" accept="image/*,video/*" />
-          <p id="fileBStatus" style="font-size: 0.9em; margin-top: 5px; min-height: 1.2em;"></p>
+          <p id="fileBStatus" style="font-size: 0.9em; margin-top: 5px; min-height: 1.2em;">No file selected</p>
+          <div style="margin: 8px 0 0; display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" class="secondary" onclick="clearSlot(false)">Clear B</button>
+          </div>
+          <div id="previewB" style="margin-top: 10px; min-height: 120px; border: 1px dashed rgba(255, 255, 255, 0.2); padding: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden;"></div>
         </div>
+      </div>
+
+      <div style="display: flex; justify-content: center; gap: 12px; margin-bottom: 20px;">
+        <button type="button" class="secondary" onclick="swapMedia()">Swap A ↔ B</button>
       </div>
 
       <div id="error" style="display: none; color: #ff0000; background: rgba(255, 0, 0, 0.1); padding: 12px; border-radius: 5px; margin: 10px 0;"></div>
 
-      <button onclick="generate()">Generate</button>
+      <button id="generateBtn" onclick="generate()">Generate</button>
 
       <div id="output" class="output"></div>
     </div>
@@ -47,9 +59,12 @@
     <script>
       let mediaA = null,
         mediaB = null;
+      let mediaAUrl = null,
+        mediaBUrl = null;
       let fileA = null,
         fileB = null; // Store original File objects for hashing
       let outputUrl = null; // Store the generated blob URL
+      let outputBlob = null; // Store the generated blob for reuse
       let outputFilename = null; // Store the filename
 
       // Error handling functions
@@ -65,10 +80,126 @@
       }
 
       // Update file status indicators
-      function updateStatus(isA, filename) {
+      function updateStatus(isA, text, color = "") {
         const statusEl = document.getElementById(isA ? "fileAStatus" : "fileBStatus");
-        statusEl.textContent = `✓ ${filename}`;
-        statusEl.style.color = "#00ff41";
+        statusEl.textContent = text;
+        statusEl.style.color = color;
+      }
+
+      function renderPreview(isA, media) {
+        const container = document.getElementById(isA ? "previewA" : "previewB");
+        container.innerHTML = "";
+
+        if (!media) {
+          const placeholder = document.createElement("p");
+          placeholder.textContent = "No preview";
+          placeholder.style.opacity = "0.6";
+          placeholder.style.fontSize = "0.85em";
+          container.appendChild(placeholder);
+          return;
+        }
+
+        const preview = media.cloneNode(false);
+        preview.src = media.src;
+        preview.style.maxWidth = "100%";
+        preview.style.maxHeight = "200px";
+        preview.style.objectFit = "contain";
+        preview.style.borderRadius = "6px";
+        preview.setAttribute("aria-label", isA ? "Preview A" : "Preview B");
+        preview.draggable = false;
+
+        if (preview.tagName === "VIDEO") {
+          preview.controls = true;
+          preview.muted = true;
+          preview.loop = true;
+          preview.playsInline = true;
+          preview.autoplay = true;
+        }
+
+        container.appendChild(preview);
+      }
+
+      function releaseMedia(isA) {
+        const media = isA ? mediaA : mediaB;
+        const url = isA ? mediaAUrl : mediaBUrl;
+
+        if (media) {
+          if (media.tagName === "VIDEO") {
+            try {
+              media.pause();
+            } catch (e) {
+              // Ignore pause failures
+            }
+            media.removeAttribute("src");
+            media.load();
+          } else if (media.tagName === "IMG") {
+            media.src = "";
+          }
+        }
+
+        if (url) {
+          URL.revokeObjectURL(url);
+        }
+
+        if (isA) {
+          mediaA = null;
+          mediaAUrl = null;
+          fileA = null;
+        } else {
+          mediaB = null;
+          mediaBUrl = null;
+          fileB = null;
+        }
+
+        renderPreview(isA, null);
+      }
+
+      function clearSlot(isA) {
+        releaseMedia(isA);
+        const input = document.getElementById(isA ? "fileInputA" : "fileInputB");
+        input.value = "";
+        updateStatus(isA, "No file selected");
+      }
+
+      function swapMedia() {
+        if (!mediaA && !mediaB) {
+          return;
+        }
+
+        [mediaA, mediaB] = [mediaB, mediaA];
+        [mediaAUrl, mediaBUrl] = [mediaBUrl, mediaAUrl];
+        [fileA, fileB] = [fileB, fileA];
+
+        const statusA = fileA ? `✓ ${fileA.name}` : "No file selected";
+        const statusB = fileB ? `✓ ${fileB.name}` : "No file selected";
+        updateStatus(true, statusA, fileA ? "#00ff41" : "");
+        updateStatus(false, statusB, fileB ? "#00ff41" : "");
+
+        renderPreview(true, mediaA);
+        renderPreview(false, mediaB);
+      }
+
+      function resetOutput() {
+        if (outputUrl && outputUrl.startsWith("blob:")) {
+          URL.revokeObjectURL(outputUrl);
+        }
+        outputUrl = null;
+        outputBlob = null;
+        outputFilename = null;
+        const output = document.getElementById("output");
+        output.innerHTML = "";
+      }
+
+      function setProgress(message) {
+        const output = document.getElementById("output");
+        output.innerHTML = `<p id="progressText">${message}</p>`;
+      }
+
+      function updateProgress(message) {
+        const progress = document.getElementById("progressText");
+        if (progress) {
+          progress.textContent = message;
+        }
       }
 
       // Drag-and-drop setup
@@ -122,35 +253,69 @@
         }
       });
 
+      renderPreview(true, null);
+      renderPreview(false, null);
+
       function assignFile(file, isA) {
         if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
           showError("Please select an image or video file");
           return;
         }
 
+        const previousFile = isA ? fileA : fileB;
+        const hadPrevious = Boolean(previousFile);
+
         hideError();
+        updateStatus(isA, "Loading...");
         const isVideo = file.type.startsWith("video/");
         const media = isVideo
           ? document.createElement("video")
           : document.createElement("img");
-        media.src = URL.createObjectURL(file);
+        const objectUrl = URL.createObjectURL(file);
+        media.preload = "auto";
+        media.src = objectUrl;
         const loadHandler = isVideo ? "onloadedmetadata" : "onload";
 
         media[loadHandler] = () => {
+          if (isVideo) {
+            const width = media.videoWidth || media.naturalWidth || 0;
+            const height = media.videoHeight || media.naturalHeight || 0;
+            if (width <= 0 || height <= 0) {
+              URL.revokeObjectURL(objectUrl);
+              showError(`Failed to load dimensions for ${file.name}`);
+              updateStatus(isA, "No file selected");
+              return;
+            }
+          }
+
+          releaseMedia(isA);
+
           if (isA) {
             mediaA = media;
+            mediaAUrl = objectUrl;
             fileA = file;
-            updateStatus(true, file.name);
+            updateStatus(true, `✓ ${file.name}`, "#00ff41");
+            renderPreview(true, mediaA);
+            document.getElementById("fileInputA").value = "";
           } else {
             mediaB = media;
+            mediaBUrl = objectUrl;
             fileB = file;
-            updateStatus(false, file.name);
+            updateStatus(false, `✓ ${file.name}`, "#00ff41");
+            renderPreview(false, mediaB);
+            document.getElementById("fileInputB").value = "";
           }
-          console.log(`${isA ? "A" : "B"} loaded:`, media);
         };
 
         media.onerror = () => {
+          URL.revokeObjectURL(objectUrl);
           showError(`Failed to load ${file.name}`);
+          if (hadPrevious && previousFile) {
+            updateStatus(isA, `✓ ${previousFile.name}`, "#00ff41");
+          } else {
+            updateStatus(isA, "No file selected");
+            renderPreview(isA, null);
+          }
         };
       }
 
@@ -183,11 +348,14 @@
         }
 
         hideError();
-        const output = document.getElementById("output");
-        output.innerHTML = "<p>Generating...</p>";
+        resetOutput();
+        setProgress("Hashing files...");
+
+        const generateBtn = document.getElementById("generateBtn");
+        generateBtn.disabled = true;
+        generateBtn.textContent = "Generating...";
 
         try {
-          // Compute unique hash from both files
           const [hashA, hashB] = await Promise.all([
             hashFile(fileA),
             hashFile(fileB),
@@ -196,117 +364,260 @@
           const isVideoOut =
             mediaA.tagName === "VIDEO" || mediaB.tagName === "VIDEO";
           const ext = isVideoOut ? ".webm" : ".png";
-          outputFilename = `mjgen-${combinedHash}${ext}`; // Updated prefix to mjgen for MediaJoiner
+          outputFilename = `mjgen-${combinedHash}${ext}`;
 
           const [w1, h1] = getDimensions(mediaA);
           const [w2, h2] = getDimensions(mediaB);
           if (w1 === 0 || w2 === 0) {
-            showError("Invalid media dimensions - could not read file dimensions");
-            output.innerHTML = "";
-            return;
+            throw new Error(
+              "Invalid media dimensions - could not read file dimensions"
+            );
           }
 
-        if (!isVideoOut) {
-          // Static image output
-          const canvas = document.createElement("canvas");
-          const ctx = canvas.getContext("2d");
-          const maxH = Math.max(h1, h2);
-          canvas.width = w1 + w2;
-          canvas.height = maxH;
-          ctx.drawImage(mediaA, 0, (maxH - h1) / 2);
-          ctx.drawImage(mediaB, w1, (maxH - h2) / 2);
-          outputUrl = canvas.toDataURL("image/png");
-          output.innerHTML = `
-                    <img src="${outputUrl}" alt="Result">
-                    <br><button id="downloadBtn" class="secondary" onclick="downloadOutput()">Download ${outputFilename}</button>
-                `;
-        } else {
-          // Video output: Composite and record
-          let duration = Infinity;
-          if (mediaA.tagName === "VIDEO")
-            duration = Math.min(duration, mediaA.duration);
-          if (mediaB.tagName === "VIDEO")
-            duration = Math.min(duration, mediaB.duration);
-          if (isNaN(duration) || duration <= 0) {
-            showError("Invalid video duration - video may not be loaded properly");
-            output.innerHTML = "";
-            return;
-          }
+          const output = document.getElementById("output");
 
-          const canvas = document.createElement("canvas");
-          const ctx = canvas.getContext("2d");
-          const maxH = Math.max(h1, h2);
-          canvas.width = w1 + w2;
-          canvas.height = maxH;
-
-          // Get stream from canvas for recording
-          const stream = canvas.captureStream(30); // 30 FPS
-          const recorder = new MediaRecorder(stream, {
-            mimeType: "video/webm;codecs=vp9",
-          });
-          const chunks = [];
-
-          recorder.ondataavailable = (e) => chunks.push(e.data);
-          recorder.onstop = () => {
-            const blob = new Blob(chunks, { type: "video/webm" });
-            outputUrl = URL.createObjectURL(blob);
-            output.innerHTML = `
-                        <video src="${outputUrl}" controls autoplay></video>
-                        <br><button id="downloadBtn" class="secondary" onclick="downloadOutput()">Download ${outputFilename}</button>
-                    `;
-          };
-
-          // Play only video elements
-          if (mediaA.tagName === "VIDEO") mediaA.play();
-          if (mediaB.tagName === "VIDEO") mediaB.play();
-
-          // Sync draw frames
-          let startTime = null;
-          function drawFrame(timestamp) {
-            if (!startTime) startTime = timestamp;
-            const elapsed = (timestamp - startTime) / 1000;
-            if (elapsed > duration) {
-              recorder.stop();
-              // Pause videos to clean up
-              if (mediaA.tagName === "VIDEO") mediaA.pause();
-              if (mediaB.tagName === "VIDEO") mediaB.pause();
-              return;
+          if (!isVideoOut) {
+            setProgress("Combining images...");
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+            if (!ctx) {
+              throw new Error("Failed to get 2D drawing context");
             }
-
-            const t = elapsed;
-            // Set time only for videos
-            if (mediaA.tagName === "VIDEO") mediaA.currentTime = t;
-            if (mediaB.tagName === "VIDEO") mediaB.currentTime = t;
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const maxH = Math.max(h1, h2);
+            canvas.width = w1 + w2;
+            canvas.height = maxH;
             ctx.drawImage(mediaA, 0, (maxH - h1) / 2);
             ctx.drawImage(mediaB, w1, (maxH - h2) / 2);
-            requestAnimationFrame(drawFrame);
-          }
 
-          recorder.start();
-          requestAnimationFrame(drawFrame);
-        }
+            const blob = await new Promise((resolve) =>
+              canvas.toBlob((b) => resolve(b), "image/png")
+            );
+
+            if (!blob) {
+              throw new Error("Failed to encode image");
+            }
+
+            outputBlob = blob;
+            outputUrl = URL.createObjectURL(blob);
+            const sizeLabel = (blob.size / (1024 * 1024)).toFixed(2);
+            output.innerHTML = `
+                    <img src="${outputUrl}" alt="Result" style="max-width: 100%; border-radius: 6px;">
+                    <p style="font-size: 0.85em; opacity: 0.8;">Estimated size: ${sizeLabel} MB</p>
+                    <button id="downloadBtn" class="secondary" onclick="downloadOutput()">Download ${outputFilename}</button>
+                `;
+          } else {
+            setProgress("Preparing video renderer...");
+            let duration = Infinity;
+            if (mediaA.tagName === "VIDEO")
+              duration = Math.min(duration, mediaA.duration);
+            if (mediaB.tagName === "VIDEO")
+              duration = Math.min(duration, mediaB.duration);
+            if (!isFinite(duration) || isNaN(duration) || duration <= 0) {
+              throw new Error(
+                "Invalid video duration - video may not be loaded properly"
+              );
+            }
+
+            const canvas = document.createElement("canvas");
+            if (typeof canvas.captureStream !== "function") {
+              throw new Error(
+                "Browser does not support canvas captureStream required for video output"
+              );
+            }
+            const ctx = canvas.getContext("2d");
+            if (!ctx) {
+              throw new Error("Failed to get 2D drawing context");
+            }
+            const maxH = Math.max(h1, h2);
+            canvas.width = w1 + w2;
+            canvas.height = maxH;
+
+            if (typeof MediaRecorder === "undefined") {
+              throw new Error("MediaRecorder is not supported in this browser");
+            }
+
+            const preferredTypes = [
+              "video/webm;codecs=vp9",
+              "video/webm;codecs=vp8",
+              "video/webm",
+            ];
+            const mimeType = preferredTypes.find((type) =>
+              MediaRecorder.isTypeSupported
+                ? MediaRecorder.isTypeSupported(type)
+                : true
+            );
+
+            if (!mimeType) {
+              throw new Error("No supported MediaRecorder MIME type found");
+            }
+
+            await new Promise((resolve, reject) => {
+              let recorder;
+              const chunks = [];
+              let settled = false;
+
+              const finishError = (err) => {
+                if (settled) return;
+                settled = true;
+                try {
+                  if (recorder && recorder.state !== "inactive") {
+                    recorder.stop();
+                  }
+                } catch (e) {
+                  // ignore stop errors
+                }
+                reject(err);
+              };
+
+              const finishSuccess = () => {
+                if (settled) return;
+                settled = true;
+                resolve();
+              };
+
+              try {
+                const stream = canvas.captureStream(30);
+                recorder = new MediaRecorder(stream, { mimeType });
+              } catch (err) {
+                finishError(err);
+                return;
+              }
+
+              recorder.ondataavailable = (e) => {
+                if (e.data && e.data.size > 0) {
+                  chunks.push(e.data);
+                }
+              };
+
+              recorder.onerror = (event) => {
+                finishError(
+                  new Error(
+                    event.error?.message || event.error || "Recording error"
+                  )
+                );
+              };
+
+              recorder.onstop = () => {
+                if (settled) {
+                  return;
+                }
+                if (!chunks.length) {
+                  finishError(new Error("Failed to record video output"));
+                  return;
+                }
+                const blob = new Blob(chunks, { type: mimeType });
+                outputBlob = blob;
+                outputUrl = URL.createObjectURL(blob);
+                const sizeLabel = (blob.size / (1024 * 1024)).toFixed(2);
+                output.innerHTML = "";
+                const videoElement = document.createElement("video");
+                videoElement.src = outputUrl;
+                videoElement.controls = true;
+                videoElement.autoplay = true;
+                videoElement.loop = true;
+                videoElement.style.maxWidth = "100%";
+                videoElement.style.borderRadius = "6px";
+                output.appendChild(videoElement);
+                const meta = document.createElement("p");
+                meta.style.fontSize = "0.85em";
+                meta.style.opacity = "0.8";
+                meta.textContent = `Estimated size: ${sizeLabel} MB`;
+                output.appendChild(meta);
+                const downloadBtn = document.createElement("button");
+                downloadBtn.id = "downloadBtn";
+                downloadBtn.className = "secondary";
+                downloadBtn.textContent = `Download ${outputFilename}`;
+                downloadBtn.onclick = downloadOutput;
+                output.appendChild(downloadBtn);
+                finishSuccess();
+              };
+
+              if (mediaA.tagName === "VIDEO") {
+                mediaA.pause();
+                mediaA.currentTime = 0;
+              }
+              if (mediaB.tagName === "VIDEO") {
+                mediaB.pause();
+                mediaB.currentTime = 0;
+              }
+
+              const totalDuration = duration;
+              let startTime = null;
+              setProgress(
+                `Encoding video: 0.00 / ${totalDuration.toFixed(2)}s`
+              );
+
+              function drawFrame(timestamp) {
+                if (settled) {
+                  return;
+                }
+                if (!startTime) startTime = timestamp;
+                const elapsed = (timestamp - startTime) / 1000;
+                const clampedElapsed = Math.min(elapsed, totalDuration);
+
+                updateProgress(
+                  `Encoding video: ${clampedElapsed.toFixed(2)} / ${totalDuration.toFixed(2)}s`
+                );
+
+                const t = clampedElapsed;
+                if (mediaA.tagName === "VIDEO") mediaA.currentTime = t;
+                if (mediaB.tagName === "VIDEO") mediaB.currentTime = t;
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(mediaA, 0, (maxH - h1) / 2);
+                ctx.drawImage(mediaB, w1, (maxH - h2) / 2);
+
+                if (clampedElapsed >= totalDuration) {
+                  recorder.stop();
+                  return;
+                }
+
+                requestAnimationFrame(drawFrame);
+              }
+
+              recorder.start();
+              requestAnimationFrame(drawFrame);
+            });
+          }
         } catch (error) {
-          showError(`Error generating output: ${error.message}`);
-          output.innerHTML = "";
           console.error("Generation error:", error);
+          showError(`Error generating output: ${error.message}`);
+          resetOutput();
+        } finally {
+          generateBtn.disabled = false;
+          generateBtn.textContent = "Generate";
         }
       }
 
       function downloadOutput() {
-        if (!outputUrl || !outputFilename) {
+        if ((!outputUrl && !outputBlob) || !outputFilename) {
           showError("No output to download - please generate output first");
           return;
         }
-        downloadBlob(outputUrl, outputFilename);
+        downloadBlob(outputFilename);
       }
 
-      function downloadBlob(url, filename) {
+      function downloadBlob(filename) {
+        let urlForDownload = outputUrl;
+        if (outputBlob && (!urlForDownload || !urlForDownload.startsWith("blob:"))) {
+          urlForDownload = URL.createObjectURL(outputBlob);
+        }
+
+        if (!urlForDownload) {
+          showError("Download unavailable - please regenerate output");
+          return;
+        }
+
         const a = document.createElement("a");
-        a.href = url;
+        a.href = urlForDownload;
         a.download = filename;
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
+
+        if (outputBlob && urlForDownload !== outputUrl) {
+          setTimeout(() => URL.revokeObjectURL(urlForDownload), 1000);
+        }
       }
     </script>
   </body>
