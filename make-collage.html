@@ -26,6 +26,19 @@
       overflow: hidden;
       border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: 4px;
+      cursor: move;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+
+    .image-thumb.dragging {
+      opacity: 0.4;
+      transform: scale(0.95);
+    }
+
+    .image-thumb.drag-over {
+      border-color: #00bfff;
+      box-shadow: 0 0 15px rgba(0, 191, 255, 0.5);
+      transform: scale(1.05);
     }
 
     .image-thumb img {
@@ -97,6 +110,9 @@
     <input type="file" id="fileInput" accept="image/*" multiple style="display: none;">
 
     <div id="imageCount" class="stats">No images loaded</div>
+    <div class="stats" style="font-size: 0.85em; opacity: 0.7; margin-top: -5px;">
+      Drag thumbnails to reorder
+    </div>
 
     <div id="imageGrid" class="image-grid"></div>
 
@@ -156,6 +172,7 @@
 
   <script>
     let images = []; // Array of {file, img, url}
+    let draggedIndex = null; // Track which image is being dragged
 
     // Error handling
     function showError(message) {
@@ -233,14 +250,67 @@
       images.forEach((item, index) => {
         const thumb = document.createElement('div');
         thumb.className = 'image-thumb';
+        thumb.draggable = true;
+        thumb.dataset.index = index;
+
+        // Drag event handlers for reordering
+        thumb.addEventListener('dragstart', (e) => {
+          draggedIndex = index;
+          thumb.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/html', thumb.innerHTML);
+        });
+
+        thumb.addEventListener('dragend', (e) => {
+          thumb.classList.remove('dragging');
+          draggedIndex = null;
+          // Remove drag-over class from all thumbs
+          document.querySelectorAll('.image-thumb').forEach(t => t.classList.remove('drag-over'));
+        });
+
+        thumb.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          if (draggedIndex !== null && draggedIndex !== index) {
+            thumb.classList.add('drag-over');
+          }
+        });
+
+        thumb.addEventListener('dragenter', (e) => {
+          e.preventDefault();
+          if (draggedIndex !== null && draggedIndex !== index) {
+            thumb.classList.add('drag-over');
+          }
+        });
+
+        thumb.addEventListener('dragleave', (e) => {
+          thumb.classList.remove('drag-over');
+        });
+
+        thumb.addEventListener('drop', (e) => {
+          e.preventDefault();
+          thumb.classList.remove('drag-over');
+
+          if (draggedIndex !== null && draggedIndex !== index) {
+            // Reorder the images array
+            const draggedItem = images[draggedIndex];
+            images.splice(draggedIndex, 1);
+            images.splice(index, 0, draggedItem);
+            updateImageGrid();
+          }
+        });
 
         const img = document.createElement('img');
         img.src = item.url;
+        img.draggable = false; // Prevent image itself from being dragged
 
         const removeBtn = document.createElement('button');
         removeBtn.className = 'remove';
         removeBtn.textContent = '×';
-        removeBtn.onclick = () => removeImage(index);
+        removeBtn.onclick = (e) => {
+          e.stopPropagation();
+          removeImage(index);
+        };
 
         thumb.appendChild(img);
         thumb.appendChild(removeBtn);
