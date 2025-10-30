@@ -5,9 +5,9 @@ Build script for the tools site.
 This script:
 1. Scans for all .html files in the root directory (excluding index.html)
 2. Creates a dist/ directory structure
-3. For each tool, creates dist/toolname/index.html
-4. Copies common.css to dist/
-5. Generates an index page listing all tools
+3. Copies the static/ directory to dist/static/
+4. For each tool, creates dist/toolname/index.html
+5. Generates an index page from static/index.template.html
 """
 
 import os
@@ -15,6 +15,7 @@ import re
 import shutil
 from pathlib import Path
 from html.parser import HTMLParser
+from string import Template
 
 
 class TitleExtractor(HTMLParser):
@@ -64,10 +65,12 @@ def build_site():
         shutil.rmtree(dist_dir)
     dist_dir.mkdir()
 
-    # Copy common.css to dist root
-    if Path('common.css').exists():
-        shutil.copy('common.css', dist_dir / 'common.css')
-        print("✓ Copied common.css")
+    # Copy static directory to dist
+    static_src = Path('static')
+    if static_src.exists():
+        static_dst = dist_dir / 'static'
+        shutil.copytree(static_src, static_dst)
+        print("✓ Copied static/ directory")
 
     # Process each tool
     tools = get_tool_files()
@@ -87,13 +90,14 @@ def build_site():
         # Extract title
         title = extract_title(html_content)
 
-        # Update CSS link if needed
-        # Replace inline styles or add link to common.css if not already present
-        if '<link rel="stylesheet" href="../common.css"' not in html_content and 'href="../common.css"' not in html_content:
-            # Add link to common.css in the head
+        # Update CSS link to point to static directory
+        html_content = html_content.replace('href="../common.css"', 'href="../static/common.css"')
+
+        # Add link if not already present
+        if 'href="../static/common.css"' not in html_content:
             html_content = html_content.replace(
                 '</head>',
-                '  <link rel="stylesheet" href="../common.css" />\n  </head>'
+                '  <link rel="stylesheet" href="../static/common.css" />\n  </head>'
             )
 
         # Write to dist/toolname/index.html
@@ -115,38 +119,23 @@ def build_site():
 
 
 def generate_index(dist_dir, tool_info):
-    """Generate the main index page"""
-    index_html = """<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tools</title>
-  <link rel="stylesheet" href="common.css" />
-</head>
-<body>
-  <div class="container">
-    <h1>Tools</h1>
-    <p>A collection of simple browser-based tools</p>
+    """Generate the main index page from template"""
+    # Read the template
+    template_path = Path('static/index.template.html')
+    template_content = template_path.read_text(encoding='utf-8')
 
-    <ul class="text-left">
-"""
-
+    # Generate tool list HTML
+    tool_list_html = ''
     for tool in tool_info:
-        index_html += f'      <li><a href="{tool["path"]}">{tool["title"]}</a></li>\n'
+        tool_list_html += f'      <li><a href="{tool["path"]}">{tool["title"]}</a></li>\n'
 
-    index_html += """    </ul>
+    # Substitute the placeholder with the tool list
+    template = Template(template_content)
+    index_html = template.substitute(TOOL_LIST=tool_list_html)
 
-    <p class="mt-3">
-      <a href="https://github.com/lepinkainen/tools" target="_blank">View source on GitHub</a>
-    </p>
-  </div>
-</body>
-</html>
-"""
-
+    # Write the final index page
     (dist_dir / 'index.html').write_text(index_html, encoding='utf-8')
-    print("✓ Generated index.html")
+    print("✓ Generated index.html from template")
 
 
 if __name__ == '__main__':

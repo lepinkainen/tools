@@ -9,12 +9,13 @@ The tools are deployed at: https://lepinkainen.github.io/tools/
 ## How It Works
 
 1. **Tools**: Each tool is a single HTML file in the root directory (e.g., `joiner.html`)
-2. **Styling**: All tools share a common stylesheet (`common.css`) for consistent appearance
+2. **Styling**: All tools share a common stylesheet (`static/common.css`) for consistent appearance
 3. **Build Process**: The `build.py` script:
    - Scans for all `.html` files in the root directory
    - Creates a `dist/` directory structure
+   - Copies the `static/` directory to `dist/static/`
    - Deploys each tool to `dist/toolname/index.html`
-   - Generates an index page listing all available tools
+   - Generates an index page from `static/index.template.html` using Python's `string.Template`
 4. **Deployment**: GitHub Actions automatically builds and deploys to GitHub Pages on every push to main
 
 ## Adding a New Tool
@@ -22,9 +23,9 @@ The tools are deployed at: https://lepinkainen.github.io/tools/
 1. Create a new HTML file in the root directory (e.g., `mytool.html`)
 2. Link to the common stylesheet in the `<head>`:
    ```html
-   <link rel="stylesheet" href="../common.css" />
+   <link rel="stylesheet" href="../static/common.css" />
    ```
-3. Use the common CSS classes for consistent styling (see `common.css`)
+3. Use the common CSS classes for consistent styling (see `static/common.css`)
 4. Commit and push - GitHub Actions will automatically deploy it!
 
 Your tool will be available at: `https://lepinkainen.github.io/tools/mytool/`
@@ -55,7 +56,7 @@ The common stylesheet provides these ready-to-use classes:
 - `.secondary` - Secondary button style
 - Utility classes: `.text-left`, `.text-center`, `.mt-*`, `.mb-*`
 
-See `common.css` for all available styles.
+See `static/common.css` for all available styles.
 
 ## License
 
