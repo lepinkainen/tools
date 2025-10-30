@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Make Collage</title>
+  <link rel="stylesheet" href="../common.css" />
+  <style>
+    /* Tool-specific styles */
+    #dropZone.dragover {
+      border-color: #00bfff;
+      box-shadow: 0 0 30px rgba(0, 191, 255, 0.3);
+      background: rgba(0, 191, 255, 0.05);
+    }
+
+    .image-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      gap: 10px;
+      margin: 15px 0;
+    }
+
+    .image-thumb {
+      position: relative;
+      aspect-ratio: 1;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+    }
+
+    .image-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .image-thumb .remove {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      background: rgba(255, 0, 0, 0.8);
+      color: white;
+      border: none;
+      border-radius: 3px;
+      padding: 2px 6px;
+      font-size: 12px;
+      cursor: pointer;
+      opacity: 0.8;
+    }
+
+    .image-thumb .remove:hover {
+      opacity: 1;
+      background: rgba(255, 0, 0, 1);
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin: 20px 0;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .control-group label {
+      font-size: 0.9em;
+      opacity: 0.9;
+    }
+
+    #preview-canvas {
+      max-width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      display: block;
+      margin: 20px auto;
+    }
+
+    .stats {
+      font-size: 0.9em;
+      opacity: 0.8;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Make Collage</h1>
+    <p>Create a grid-based image collage from multiple images. Upload images and customize the layout.</p>
+
+    <div id="dropZone" class="box">
+      <p>Drag and drop images here or click to select</p>
+      <p style="font-size: 0.9em; opacity: 0.8;">Supports JPEG, PNG, GIF, WebP</p>
+    </div>
+    <input type="file" id="fileInput" accept="image/*" multiple style="display: none;">
+
+    <div id="imageCount" class="stats">No images loaded</div>
+
+    <div id="imageGrid" class="image-grid"></div>
+
+    <div class="controls-grid">
+      <div class="control-group">
+        <label for="columns">Columns (0 = auto):</label>
+        <input type="number" id="columns" value="0" min="0" max="20">
+      </div>
+
+      <div class="control-group">
+        <label for="targetSize">Target Size (px):</label>
+        <input type="number" id="targetSize" value="1920" min="100" max="8192" step="100">
+      </div>
+
+      <div class="control-group">
+        <label for="padding">Padding (px):</label>
+        <input type="number" id="padding" value="5" min="0" max="100">
+      </div>
+
+      <div class="control-group">
+        <label for="background">Background Color:</label>
+        <input type="color" id="background" value="#000000">
+      </div>
+
+      <div class="control-group">
+        <label for="quality">JPEG Quality (%):</label>
+        <input type="number" id="quality" value="85" min="1" max="100">
+      </div>
+    </div>
+
+    <div class="control-group" style="margin: 20px 0;">
+      <label for="title">Title (optional):</label>
+      <input type="text" id="title" placeholder="Enter collage title...">
+    </div>
+
+    <div class="controls-grid">
+      <div class="control-group">
+        <label for="titleSize">Title Font Size (px):</label>
+        <input type="number" id="titleSize" value="48" min="12" max="200">
+      </div>
+
+      <div class="control-group">
+        <label for="titleColor">Title Color:</label>
+        <input type="color" id="titleColor" value="#ffffff">
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; margin: 20px 0;">
+      <button onclick="generateCollage()">Generate Collage</button>
+      <button class="secondary" onclick="clearAll()">Clear All Images</button>
+    </div>
+
+    <div id="error" style="display: none; color: #ff0000; background: rgba(255, 0, 0, 0.1); padding: 12px; border-radius: 5px; margin: 10px 0;"></div>
+
+    <div id="output" class="output"></div>
+  </div>
+
+  <script>
+    let images = []; // Array of {file, img, url}
+
+    // Error handling
+    function showError(message) {
+      const errorDiv = document.getElementById('error');
+      errorDiv.textContent = message;
+      errorDiv.style.display = 'block';
+    }
+
+    function hideError() {
+      document.getElementById('error').style.display = 'none';
+    }
+
+    // Drag and drop setup
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+      handleFiles(files);
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files);
+      handleFiles(files);
+    });
+
+    // Handle file uploads
+    async function handleFiles(files) {
+      hideError();
+
+      for (const file of files) {
+        try {
+          const img = await loadImage(file);
+          const url = URL.createObjectURL(file);
+          images.push({ file, img, url });
+        } catch (err) {
+          showError(`Failed to load image: ${file.name}`);
+        }
+      }
+
+      updateImageGrid();
+      updateStats();
+    }
+
+    // Load image as HTMLImageElement
+    function loadImage(file) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('Failed to load image'));
+        img.src = url;
+      });
+    }
+
+    // Update image grid display
+    function updateImageGrid() {
+      const grid = document.getElementById('imageGrid');
+      grid.innerHTML = '';
+
+      images.forEach((item, index) => {
+        const thumb = document.createElement('div');
+        thumb.className = 'image-thumb';
+
+        const img = document.createElement('img');
+        img.src = item.url;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove';
+        removeBtn.textContent = '×';
+        removeBtn.onclick = () => removeImage(index);
+
+        thumb.appendChild(img);
+        thumb.appendChild(removeBtn);
+        grid.appendChild(thumb);
+      });
+    }
+
+    // Remove image
+    function removeImage(index) {
+      URL.revokeObjectURL(images[index].url);
+      images.splice(index, 1);
+      updateImageGrid();
+      updateStats();
+    }
+
+    // Clear all images
+    function clearAll() {
+      images.forEach(item => URL.revokeObjectURL(item.url));
+      images = [];
+      updateImageGrid();
+      updateStats();
+      document.getElementById('output').innerHTML = '';
+    }
+
+    // Update stats
+    function updateStats() {
+      const count = images.length;
+      document.getElementById('imageCount').textContent =
+        count === 0 ? 'No images loaded' : `${count} image${count === 1 ? '' : 's'} loaded`;
+    }
+
+    // Detect most common aspect ratio
+    function detectAspectRatio() {
+      if (images.length === 0) return 1;
+
+      const ratios = images.map(item => item.img.width / item.img.height);
+      const rounded = ratios.map(r => Math.round(r * 100) / 100);
+
+      // Count frequency
+      const counts = {};
+      rounded.forEach(r => counts[r] = (counts[r] || 0) + 1);
+
+      // Find most common
+      let maxCount = 0;
+      let commonRatio = 1;
+      for (const [ratio, count] of Object.entries(counts)) {
+        if (count > maxCount) {
+          maxCount = count;
+          commonRatio = parseFloat(ratio);
+        }
+      }
+
+      return commonRatio;
+    }
+
+    // Calculate grid dimensions
+    function calculateGrid(imageCount, columns) {
+      if (columns > 0) {
+        return {
+          cols: columns,
+          rows: Math.ceil(imageCount / columns)
+        };
+      }
+
+      // Auto: make roughly square
+      const sqr = Math.ceil(Math.sqrt(imageCount));
+      return {
+        cols: sqr,
+        rows: Math.ceil(imageCount / sqr)
+      };
+    }
+
+    // Generate collage
+    async function generateCollage() {
+      hideError();
+
+      if (images.length === 0) {
+        showError('Please upload at least one image');
+        return;
+      }
+
+      const columns = parseInt(document.getElementById('columns').value);
+      const targetSize = parseInt(document.getElementById('targetSize').value);
+      const padding = parseInt(document.getElementById('padding').value);
+      const bgColor = document.getElementById('background').value;
+      const quality = parseInt(document.getElementById('quality').value) / 100;
+      const title = document.getElementById('title').value.trim();
+      const titleSize = parseInt(document.getElementById('titleSize').value);
+      const titleColor = document.getElementById('titleColor').value;
+
+      try {
+        // Detect aspect ratio
+        const targetRatio = detectAspectRatio();
+
+        // Calculate grid
+        const grid = calculateGrid(images.length, columns);
+
+        // Calculate cell size
+        const cellWidth = targetSize / grid.cols;
+        const cellHeight = cellWidth / targetRatio;
+
+        // Calculate canvas size
+        const titleHeight = title ? titleSize * 1.5 : 0;
+        const canvasWidth = grid.cols * cellWidth + (grid.cols - 1) * padding;
+        const canvasHeight = grid.rows * cellHeight + (grid.rows - 1) * padding + titleHeight;
+
+        // Create canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+        const ctx = canvas.getContext('2d');
+
+        // Fill background
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+        // Draw title if provided
+        if (title) {
+          ctx.fillStyle = titleColor;
+          ctx.font = `bold ${titleSize}px Arial, sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'top';
+          ctx.fillText(title, canvasWidth / 2, padding);
+        }
+
+        // Draw images
+        let index = 0;
+        for (let row = 0; row < grid.rows; row++) {
+          for (let col = 0; col < grid.cols; col++) {
+            if (index >= images.length) break;
+
+            const img = images[index].img;
+            const imgRatio = img.width / img.height;
+
+            // Calculate position
+            const x = col * (cellWidth + padding);
+            const y = row * (cellHeight + padding) + titleHeight;
+
+            // Calculate dimensions with letterboxing
+            let drawWidth, drawHeight, drawX, drawY;
+
+            if (imgRatio > targetRatio) {
+              // Image is wider - fit to width
+              drawWidth = cellWidth;
+              drawHeight = cellWidth / imgRatio;
+              drawX = x;
+              drawY = y + (cellHeight - drawHeight) / 2;
+            } else {
+              // Image is taller - fit to height
+              drawHeight = cellHeight;
+              drawWidth = cellHeight * imgRatio;
+              drawX = x + (cellWidth - drawWidth) / 2;
+              drawY = y;
+            }
+
+            ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+            index++;
+          }
+        }
+
+        // Convert to blob
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            showError('Failed to generate collage');
+            return;
+          }
+
+          // Display result
+          const output = document.getElementById('output');
+          output.innerHTML = '';
+
+          const previewCanvas = document.createElement('canvas');
+          previewCanvas.id = 'preview-canvas';
+
+          // Scale preview to fit screen
+          const maxPreviewWidth = 1200;
+          const scale = Math.min(1, maxPreviewWidth / canvas.width);
+          previewCanvas.width = canvas.width * scale;
+          previewCanvas.height = canvas.height * scale;
+
+          const previewCtx = previewCanvas.getContext('2d');
+          previewCtx.drawImage(canvas, 0, 0, previewCanvas.width, previewCanvas.height);
+
+          const info = document.createElement('p');
+          info.textContent = `Collage generated: ${Math.round(canvasWidth)}×${Math.round(canvasHeight)}px (${images.length} images, ${grid.cols}×${grid.rows} grid)`;
+
+          const downloadBtn = document.createElement('button');
+          downloadBtn.textContent = 'Download Collage';
+          downloadBtn.onclick = () => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `collage-${Date.now()}.jpg`;
+            a.click();
+            URL.revokeObjectURL(url);
+          };
+
+          output.appendChild(info);
+          output.appendChild(downloadBtn);
+          output.appendChild(previewCanvas);
+
+        }, 'image/jpeg', quality);
+
+      } catch (err) {
+        showError(`Error generating collage: ${err.message}`);
+      }
+    }
+  </script>
+</body>
+</html>
