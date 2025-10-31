@@ -59,7 +59,19 @@ dist/
 </head>
 <body>
   <div class="container">
-    <h1>My Tool Name</h1>
+    <h1>
+      <svg
+        class="tool-icon"
+        viewBox="0 0 40 40"
+        style="width: 50px; height: 50px"
+      >
+        <g stroke="#00d9ff" stroke-width="2" fill="none">
+          <!-- Your SVG icon shapes here -->
+          <rect x="5" y="5" width="30" height="30" />
+        </g>
+      </svg>
+      My Tool Name
+    </h1>
     <p>Brief description of what your tool does</p>
 
     <div class="box">
@@ -90,6 +102,198 @@ dist/
 3. **Add tool-specific styles** in a `<style>` block if needed
 4. **Keep it simple** - single self-contained HTML file
 5. **Mobile-friendly** - common.css already handles responsive design
+
+---
+
+### Adding SVG Icons
+
+Each tool should include an SVG icon in the `<h1>` tag to provide visual identity and enhance the cyberpunk aesthetic.
+
+#### SVG Icon Template
+
+```html
+<h1>
+  <svg
+    class="tool-icon"
+    viewBox="0 0 40 40"
+    style="width: 50px; height: 50px"
+  >
+    <g stroke="#00d9ff" stroke-width="2" fill="none">
+      <!-- Your SVG shapes go here -->
+      <rect x="5" y="5" width="30" height="30" />
+    </g>
+  </svg>
+  My Tool Name
+</h1>
+```
+
+#### Standard Attributes
+
+- **class**: `tool-icon` - Provides CSS styling from common.css (glow effects, hover animations)
+- **viewBox**: `0 0 40 40` - Coordinate system for SVG (keep consistent)
+- **style**: `width: 50px; height: 50px` - Display size (keep consistent)
+- **Container**: `<g>` element groups shapes with common styling
+  - `stroke="#00d9ff"` - Neon cyan (primary color)
+  - `stroke-width="2"` - Standard line thickness
+  - `fill="none"` - Outline-only shapes
+
+#### Color Scheme
+
+- **Primary**: `#00d9ff` (neon cyan) - Use for main shapes and outlines
+- **Accent**: `#ff1493` (neon magenta) - Use sparingly for key elements or connections
+
+These colors match the cyberpunk theme used throughout the site.
+
+#### Design Guidelines
+
+1. **Use simple geometric shapes** - Rectangles, circles, lines work best
+2. **Keep stroke-based** - Outlines rather than filled shapes
+3. **Visual metaphor** - Icon should represent the tool's core function
+4. **Clear at small sizes** - Design must be recognizable at 50px
+5. **Stay within bounds** - Use the 0-40 coordinate space of the viewBox
+
+#### Working Examples
+
+**MediaJoiner** - Two rectangles with connecting line (represents joining media):
+```html
+<svg class="tool-icon" viewBox="0 0 40 40" style="width: 50px; height: 50px">
+  <g stroke="#00d9ff" stroke-width="2" fill="none">
+    <rect x="2" y="10" width="15" height="20" />
+    <rect x="23" y="10" width="15" height="20" />
+    <line x1="19" y1="20" x2="21" y2="20" stroke="#ff1493" stroke-width="3" />
+  </g>
+</svg>
+```
+
+**Make Collage** - 2x2 grid of rectangles (represents grid layout):
+```html
+<svg class="tool-icon" viewBox="0 0 40 40" style="width: 50px; height: 50px">
+  <g stroke="#00d9ff" stroke-width="2" fill="none">
+    <rect x="5" y="5" width="12" height="12" />
+    <rect x="23" y="5" width="12" height="12" />
+    <rect x="5" y="23" width="12" height="12" />
+    <rect x="23" y="23" width="12" height="12" />
+  </g>
+</svg>
+```
+
+#### CSS Effects (from common.css)
+
+The `.tool-icon` class automatically provides:
+- **Drop shadow**: Cyan glow effect (`0 0 5px rgba(0, 217, 255, 0.6)`)
+- **Spacing**: `margin: 0 10px` (separates icon from text)
+- **Alignment**: `vertical-align: middle`
+- **Hover effect**: Magenta glow + scale up animation
+  - `filter: drop-shadow(0 0 10px rgba(255, 20, 147, 0.8))`
+  - `transform: scale(1.1)`
+
+---
+
+### Adding Graphics Enhancements
+
+The `graphics.js` utility provides cyberpunk-themed visual enhancements like circuit corners, loading spinners, and scan lines. These enhancements use SVG symbols from `graphics.svg`.
+
+#### Basic Setup
+
+Add these scripts at the end of your HTML file, just before `</body>`:
+
+```html
+<!-- Load graphics utilities -->
+<script src="../static/graphics.js"></script>
+<script>
+  // Initialize graphics on load
+  document.addEventListener("DOMContentLoaded", () => {
+    initGraphics({
+      circuits: true,      // Add circuit corners to boxes
+      scanLines: false,    // Subtle scan lines overlay
+      dataStream: false,   // Floating data particles
+      promptIcons: false,  // Chevron icons on headings
+    });
+  });
+</script>
+```
+
+#### Available Options
+
+**`circuits`** (recommended: `true`)
+- Adds cyberpunk circuit board decorations to all `.box` elements
+- Creates glowing corner effects with cyan lines and magenta dots
+- Enhances drop zones and container boxes visually
+- Example: Drop zones in MediaJoiner, Make Collage, Video to GIF
+
+**`scanLines`** (recommended: `false`)
+- Adds horizontal scan line overlay across the entire page
+- Creates a CRT monitor effect
+- Can be visually busy - use sparingly
+
+**`dataStream`** (recommended: `false`)
+- Adds floating particle effects in the background
+- Animated cyan dots that drift upward
+- Can be visually busy - use sparingly
+
+**`promptIcons`** (recommended: varies)
+- Adds terminal-style chevron icons before `<h2>` headings
+- Creates a command-line aesthetic
+- Example: Enabled in Make Collage, disabled in MediaJoiner
+
+#### Using Individual Functions
+
+You can also use graphics.js functions directly:
+
+**Loading Spinner:**
+```javascript
+// Show loading overlay with spinner
+showLoading("Processing media...");
+
+// Hide loading overlay
+hideLoading();
+```
+
+**Circuit Corners:**
+```javascript
+// Add to a specific element
+const myBox = document.getElementById("custom-box");
+addCircuitCorners(myBox);
+
+// Add to all .box elements
+addCircuitCornersToAllBoxes();
+```
+
+**Glitch Divider:**
+```javascript
+// Create a decorative divider element
+const divider = createGlitchDivider();
+document.querySelector(".container").appendChild(divider);
+```
+
+#### Best Practices
+
+1. **Start with circuits only** - Most tools should enable `circuits: true` and leave others disabled
+2. **Test visual impact** - Scan lines and data streams can be overwhelming
+3. **Use loading spinners** - For async operations (file processing, API calls)
+4. **Consistent configuration** - Follow existing tools' patterns unless you have a good reason to differ
+
+#### Working Examples
+
+**MediaJoiner** - Basic setup with circuits only:
+```javascript
+initGraphics({
+  circuits: true,
+  scanLines: false,
+  dataStream: false,
+  promptIcons: false,
+});
+```
+
+**Make Collage** - Circuits with prompt icons:
+```javascript
+initGraphics({
+  circuits: true,
+  scanLines: false,
+  dataStream: false,
+  promptIcons: true,  // Adds chevrons to h2 headings
+});
+```
 
 ---
 
