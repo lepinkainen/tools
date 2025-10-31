@@ -224,7 +224,10 @@
       </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.7/dist/umd/ffmpeg.js"></script>
+    <script type="module">
+      import { GIFEncoder, quantize, applyPalette } from 'https://cdn.jsdelivr.net/npm/gifenc@1.0.3/+esm';
+      window.gifenc = { GIFEncoder, quantize, applyPalette };
+    </script>
     <script>
       const dropZone = document.getElementById("dropZone");
       const fileInput = document.getElementById("fileInput");
@@ -249,37 +252,7 @@
       const errorDiv = document.getElementById("error");
 
       let currentVideoFile = null;
-      let ffmpeg = null;
       let generatedGifBlob = null;
-
-      // Initialize FFmpeg
-      async function loadFFmpeg() {
-        if (ffmpeg) return;
-
-        try {
-          showProgress("Loading FFmpeg...", 0);
-          const { FFmpeg } = FFmpegWASM;
-          ffmpeg = new FFmpeg();
-
-          ffmpeg.on("log", ({ message }) => {
-            console.log(message);
-          });
-
-          ffmpeg.on("progress", ({ progress: p, time }) => {
-            const percent = Math.round(p * 100);
-            showProgress(`Converting: ${time / 1000000}s processed`, percent);
-          });
-
-          await ffmpeg.load({
-            coreURL: "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.4/dist/umd/ffmpeg-core.js",
-          });
-
-          hideProgress();
-        } catch (error) {
-          showError("Failed to load FFmpeg: " + error.message);
-          throw error;
-        }
-      }
 
       // Drag and drop handlers
       dropZone.addEventListener("click", () => fileInput.click());
@@ -375,38 +348,71 @@
         generateBtn.disabled = true;
 
         try {
-          await loadFFmpeg();
+          showProgress("Preparing...", 0);
 
-          showProgress("Preparing video...", 10);
-
-          // Write video file to FFmpeg filesystem
-          const videoData = await currentVideoFile.arrayBuffer();
-          const videoFileName = "input" + getFileExtension(currentVideoFile.name);
-          await ffmpeg.writeFile(videoFileName, new Uint8Array(videoData));
-
-          showProgress("Converting to GIF...", 30);
-
-          // Build FFmpeg command
           const duration = end - start;
-          const scaleFilter = width > 0 ? `scale=${width}:-1:flags=lanczos` : `scale=iw:ih:flags=lanczos`;
+          const frameDelayMs = Math.round(100 / fps); // gifenc uses centiseconds (1/100 sec)
+          const totalFrames = Math.ceil(duration * fps);
 
-          // FFmpeg command for high-quality GIF
-          const args = [
-            "-i", videoFileName,
-            "-ss", start.toString(),
-            "-t", duration.toString(),
-            "-vf", `${scaleFilter},fps=${fps},split[s0][s1];[s0]palettegen=max_colors=256[p];[s1][p]paletteuse=dither=bayer:bayer_scale=5`,
-            "-loop", "0",
-            "output.gif"
-          ];
+          // Create a canvas for capturing frames
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-          await ffmpeg.exec(args);
+          // Set canvas size based on width parameter
+          const video = videoPreview;
+          const videoWidth = video.videoWidth;
+          const videoHeight = video.videoHeight;
 
-          showProgress("Reading output...", 90);
+          if (width > 0) {
+            canvas.width = width;
+            canvas.height = Math.round((videoHeight / videoWidth) * width);
+          } else {
+            canvas.width = videoWidth;
+            canvas.height = videoHeight;
+          }
 
-          // Read the output GIF
-          const data = await ffmpeg.readFile("output.gif");
-          generatedGifBlob = new Blob([data.buffer], { type: "image/gif" });
+          // Initialize GIF encoder using gifenc
+          const { GIFEncoder, quantize, applyPalette } = gifenc;
+          const gif = GIFEncoder();
+
+          // Capture frames
+          video.pause();
+          let frameCount = 0;
+
+          for (let i = 0; i < totalFrames; i++) {
+            const currentTime = start + (i / fps);
+            video.currentTime = currentTime;
+
+            await new Promise((resolve) => {
+              video.onseeked = () => {
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                // Get image data from canvas
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+                // Quantize colors and create palette
+                const palette = quantize(imageData.data, 256);
+                const index = applyPalette(imageData.data, palette);
+
+                // Add frame to GIF
+                gif.writeFrame(index, canvas.width, canvas.height, {
+                  palette,
+                  delay: frameDelayMs
+                });
+
+                frameCount++;
+                showProgress(`Processing frames... ${frameCount}/${totalFrames}`, Math.round((frameCount / totalFrames) * 100));
+                resolve();
+              };
+            });
+          }
+
+          // Finish encoding
+          gif.finish();
+
+          // Create blob from GIF data
+          const buffer = gif.bytes();
+          generatedGifBlob = new Blob([buffer], { type: "image/gif" });
 
           // Display preview
           const gifUrl = URL.createObjectURL(generatedGifBlob);
@@ -417,16 +423,13 @@
 
           previewContainer.style.display = "block";
           hideProgress();
-
-          // Clean up FFmpeg files
-          await ffmpeg.deleteFile(videoFileName);
-          await ffmpeg.deleteFile("output.gif");
+          generateBtn.disabled = false;
 
         } catch (error) {
           showError("Failed to generate GIF: " + error.message);
           console.error(error);
-        } finally {
           generateBtn.disabled = false;
+          hideProgress();
         }
       });
 
