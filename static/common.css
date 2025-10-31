@@ -100,6 +100,24 @@ select {
   font-family: inherit;
 }
 
+input[type="color"] {
+  margin: 10px;
+  padding: 5px;
+  width: 100%;
+  min-width: 100px;
+  height: 50px;
+  background: rgba(0, 217, 255, 0.1);
+  border: 2px solid #00d9ff;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+input[type="color"]:hover {
+  border-color: #00bfff;
+  box-shadow: 0 0 10px rgba(0, 217, 255, 0.4);
+}
+
 /* Button styles */
 button {
   margin: 10px;
