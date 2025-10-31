@@ -16,40 +16,148 @@
   </head>
   <body>
     <div class="container">
-      <h1>MediaJoiner</h1>
-      <p>Join two images or videos side-by-side. Upload images/videos separately or drag and drop them into the box below.</p>
+      <h1>
+        <svg
+          class="tool-icon"
+          viewBox="0 0 40 40"
+          style="width: 50px; height: 50px"
+        >
+          <g stroke="#00d9ff" stroke-width="2" fill="none">
+            <rect x="2" y="10" width="15" height="20" />
+            <rect x="23" y="10" width="15" height="20" />
+            <line
+              x1="19"
+              y1="20"
+              x2="21"
+              y2="20"
+              stroke="#ff1493"
+              stroke-width="3"
+            />
+          </g>
+        </svg>
+        MediaJoiner
+      </h1>
+      <p>
+        Join two images or videos side-by-side. Upload images/videos separately
+        or drag and drop them into the box below.
+      </p>
 
       <div id="dropZone" class="box">
         <p>Drag and drop files here or use the file inputs below</p>
-        <p style="font-size: 0.9em; opacity: 0.8;">Files will be assigned to A and B automatically</p>
+        <p style="font-size: 0.9em; opacity: 0.8">
+          Files will be assigned to A and B automatically
+        </p>
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
+      <div
+        style="
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+          margin: 20px 0;
+        "
+      >
         <div>
           <label for="fileInputA">File A:</label>
           <input type="file" id="fileInputA" accept="image/*,video/*" />
-          <p id="fileAStatus" style="font-size: 0.9em; margin-top: 5px; min-height: 1.2em;">No file selected</p>
-          <div style="margin: 8px 0 0; display: flex; gap: 8px; flex-wrap: wrap;">
-            <button type="button" id="clearABtn" class="secondary" onclick="clearSlot(true)">Clear A</button>
+          <p
+            id="fileAStatus"
+            style="font-size: 0.9em; margin-top: 5px; min-height: 1.2em"
+          >
+            No file selected
+          </p>
+          <div
+            style="margin: 8px 0 0; display: flex; gap: 8px; flex-wrap: wrap"
+          >
+            <button
+              type="button"
+              id="clearABtn"
+              class="secondary"
+              onclick="clearSlot(true)"
+            >
+              Clear A
+            </button>
           </div>
-          <div id="previewA" style="margin-top: 10px; min-height: 120px; border: 1px dashed rgba(255, 255, 255, 0.2); padding: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden;"></div>
+          <div
+            id="previewA"
+            style="
+              margin-top: 10px;
+              min-height: 120px;
+              border: 1px dashed rgba(255, 255, 255, 0.2);
+              padding: 8px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              overflow: hidden;
+            "
+          ></div>
         </div>
         <div>
           <label for="fileInputB">File B:</label>
           <input type="file" id="fileInputB" accept="image/*,video/*" />
-          <p id="fileBStatus" style="font-size: 0.9em; margin-top: 5px; min-height: 1.2em;">No file selected</p>
-          <div style="margin: 8px 0 0; display: flex; gap: 8px; flex-wrap: wrap;">
-            <button type="button" id="clearBBtn" class="secondary" onclick="clearSlot(false)">Clear B</button>
+          <p
+            id="fileBStatus"
+            style="font-size: 0.9em; margin-top: 5px; min-height: 1.2em"
+          >
+            No file selected
+          </p>
+          <div
+            style="margin: 8px 0 0; display: flex; gap: 8px; flex-wrap: wrap"
+          >
+            <button
+              type="button"
+              id="clearBBtn"
+              class="secondary"
+              onclick="clearSlot(false)"
+            >
+              Clear B
+            </button>
           </div>
-          <div id="previewB" style="margin-top: 10px; min-height: 120px; border: 1px dashed rgba(255, 255, 255, 0.2); padding: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden;"></div>
+          <div
+            id="previewB"
+            style="
+              margin-top: 10px;
+              min-height: 120px;
+              border: 1px dashed rgba(255, 255, 255, 0.2);
+              padding: 8px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              overflow: hidden;
+            "
+          ></div>
         </div>
       </div>
 
-      <div style="display: flex; justify-content: center; gap: 12px; margin-bottom: 20px;">
-        <button type="button" id="swapBtn" class="secondary" onclick="swapMedia()">Swap A ↔ B</button>
+      <div
+        style="
+          display: flex;
+          justify-content: center;
+          gap: 12px;
+          margin-bottom: 20px;
+        "
+      >
+        <button
+          type="button"
+          id="swapBtn"
+          class="secondary"
+          onclick="swapMedia()"
+        >
+          Swap A ↔ B
+        </button>
       </div>
 
-      <div id="error" style="display: none; color: #ff0000; background: rgba(255, 0, 0, 0.1); padding: 12px; border-radius: 5px; margin: 10px 0;"></div>
+      <div
+        id="error"
+        style="
+          display: none;
+          color: #ff0000;
+          background: rgba(255, 0, 0, 0.1);
+          padding: 12px;
+          border-radius: 5px;
+          margin: 10px 0;
+        "
+      ></div>
 
       <button id="generateBtn" onclick="generate()">Generate</button>
 
@@ -81,13 +189,17 @@
 
       // Update file status indicators
       function updateStatus(isA, text, color = "") {
-        const statusEl = document.getElementById(isA ? "fileAStatus" : "fileBStatus");
+        const statusEl = document.getElementById(
+          isA ? "fileAStatus" : "fileBStatus"
+        );
         statusEl.textContent = text;
         statusEl.style.color = color;
       }
 
       function renderPreview(isA, media) {
-        const container = document.getElementById(isA ? "previewA" : "previewB");
+        const container = document.getElementById(
+          isA ? "previewA" : "previewB"
+        );
         container.innerHTML = "";
 
         if (!media) {
@@ -156,7 +268,9 @@
 
       function clearSlot(isA) {
         releaseMedia(isA);
-        const input = document.getElementById(isA ? "fileInputA" : "fileInputB");
+        const input = document.getElementById(
+          isA ? "fileInputA" : "fileInputB"
+        );
         input.value = "";
         updateStatus(isA, "No file selected");
       }
@@ -257,7 +371,10 @@
       renderPreview(false, null);
 
       function assignFile(file, isA) {
-        if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+        if (
+          !file.type.startsWith("image/") &&
+          !file.type.startsWith("video/")
+        ) {
           showError("Please select an image or video file");
           return;
         }
@@ -564,7 +681,9 @@
                 const clampedElapsed = Math.min(elapsed, totalDuration);
 
                 updateProgress(
-                  `Encoding video: ${clampedElapsed.toFixed(2)} / ${totalDuration.toFixed(2)}s`
+                  `Encoding video: ${clampedElapsed.toFixed(
+                    2
+                  )} / ${totalDuration.toFixed(2)}s`
                 );
 
                 const t = clampedElapsed;
@@ -612,7 +731,10 @@
 
       function downloadBlob(filename) {
         let urlForDownload = outputUrl;
-        if (outputBlob && (!urlForDownload || !urlForDownload.startsWith("blob:"))) {
+        if (
+          outputBlob &&
+          (!urlForDownload || !urlForDownload.startsWith("blob:"))
+        ) {
           urlForDownload = URL.createObjectURL(outputBlob);
         }
 
@@ -632,6 +754,29 @@
           setTimeout(() => URL.revokeObjectURL(urlForDownload), 1000);
         }
       }
+    </script>
+
+    <!-- Load graphics utilities -->
+    <script src="../static/graphics.js"></script>
+    <script>
+      // Initialize graphics on load
+      document.addEventListener("DOMContentLoaded", () => {
+        initGraphics({
+          circuits: true, // Add circuit corners to boxes
+          scanLines: false, // Subtle scan lines
+          dataStream: false, // Floating data particles
+          promptIcons: false, // Chevron icons on headings
+        });
+      });
+
+      // Override default loading behavior to use custom spinner
+      const originalGenerate = generate;
+      generate = function () {
+        showLoading("Processing media...");
+        originalGenerate().finally(() => {
+          hideLoading();
+        });
+      };
     </script>
   </body>
 </html>
