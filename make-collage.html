@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Make Collage</title>
     <link rel="stylesheet" href="../static/common.css" />
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Open+Sans:wght@400;700&family=Montserrat:wght@400;700&family=Lato:wght@400;700&family=Oswald:wght@400;700&family=Raleway:wght@400;700&family=Playfair+Display:wght@400;700&family=Merriweather:wght@400;700&family=Ubuntu:wght@400;700&family=Bebas+Neue&family=Dancing+Script:wght@400;700&family=Pacifico&family=Bitter:wght@400;700&display=swap" rel="stylesheet">
     <style>
       /* Tool-specific styles */
       #dropZone.dragover {
@@ -189,6 +191,39 @@
         <div class="control-group">
           <label for="titleColor">Title Color:</label>
           <input type="color" id="titleColor" value="#ffffff" />
+        </div>
+
+        <div class="control-group">
+          <label for="titleFont">Title Font:</label>
+          <select id="titleFont">
+            <optgroup label="Web Safe Fonts">
+              <option value="Arial, sans-serif">Arial</option>
+              <option value="Helvetica, sans-serif">Helvetica</option>
+              <option value="Georgia, serif">Georgia</option>
+              <option value="Times New Roman, serif">Times New Roman</option>
+              <option value="Courier New, monospace">Courier New</option>
+              <option value="Verdana, sans-serif">Verdana</option>
+              <option value="Impact, sans-serif">Impact</option>
+              <option value="Comic Sans MS, cursive">Comic Sans MS</option>
+              <option value="Trebuchet MS, sans-serif">Trebuchet MS</option>
+              <option value="Palatino, serif">Palatino</option>
+            </optgroup>
+            <optgroup label="Google Fonts">
+              <option value="Roboto, sans-serif">Roboto</option>
+              <option value="Open Sans, sans-serif">Open Sans</option>
+              <option value="Montserrat, sans-serif">Montserrat</option>
+              <option value="Lato, sans-serif">Lato</option>
+              <option value="Oswald, sans-serif">Oswald</option>
+              <option value="Raleway, sans-serif">Raleway</option>
+              <option value="Playfair Display, serif">Playfair Display</option>
+              <option value="Merriweather, serif">Merriweather</option>
+              <option value="Ubuntu, sans-serif">Ubuntu</option>
+              <option value="Bebas Neue, cursive">Bebas Neue</option>
+              <option value="Dancing Script, cursive">Dancing Script</option>
+              <option value="Pacifico, cursive">Pacifico</option>
+              <option value="Bitter, serif">Bitter</option>
+            </optgroup>
+          </select>
         </div>
       </div>
 
@@ -451,6 +486,7 @@
         const title = document.getElementById("title").value.trim();
         const titleSize = parseInt(document.getElementById("titleSize").value);
         const titleColor = document.getElementById("titleColor").value;
+        const titleFont = document.getElementById("titleFont").value;
 
         try {
           // Detect aspect ratio
@@ -482,7 +518,7 @@
           // Draw title if provided
           if (title) {
             ctx.fillStyle = titleColor;
-            ctx.font = `bold ${titleSize}px Arial, sans-serif`;
+            ctx.font = `bold ${titleSize}px ${titleFont}`;
             ctx.textAlign = "center";
             ctx.textBaseline = "top";
             ctx.fillText(title, canvasWidth / 2, padding);
