@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Video to GIF Converter</title>
+    <link rel="stylesheet" href="../static/common.css" />
+    <style>
+      .video-container {
+        margin: 20px 0;
+        display: none;
+      }
+
+      video {
+        width: 100%;
+        max-width: 800px;
+        display: block;
+        margin: 0 auto;
+        border: 2px dashed var(--neon-magenta);
+        border-radius: 8px;
+      }
+
+      .controls-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin: 20px 0;
+      }
+
+      .control-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+
+      .control-group label {
+        font-size: 0.9em;
+        color: var(--neon-cyan);
+      }
+
+      .time-input-group {
+        display: flex;
+        gap: 5px;
+      }
+
+      .time-input-group input {
+        flex: 1;
+      }
+
+      .time-input-group button {
+        padding: 5px 10px;
+        font-size: 0.8em;
+      }
+
+      .preview-container {
+        margin: 20px 0;
+        display: none;
+      }
+
+      .preview-container img {
+        width: 100%;
+        max-width: 800px;
+        display: block;
+        margin: 0 auto;
+        border: 2px solid var(--neon-magenta);
+        border-radius: 8px;
+      }
+
+      .progress {
+        margin: 20px 0;
+        display: none;
+      }
+
+      .progress-bar {
+        width: 100%;
+        height: 30px;
+        background: rgba(0, 0, 0, 0.3);
+        border: 2px solid var(--neon-cyan);
+        border-radius: 5px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .progress-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--neon-magenta), var(--neon-cyan));
+        width: 0%;
+        transition: width 0.3s;
+      }
+
+      .progress-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 0.9em;
+        z-index: 1;
+        text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+      }
+
+      .button-group {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .info-text {
+        text-align: center;
+        color: var(--neon-cyan);
+        font-size: 0.9em;
+        margin: 10px 0;
+      }
+
+      #error {
+        display: none;
+        color: #ff4444;
+        border: 2px solid #ff4444;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 5px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Video to GIF Converter</h1>
+      <p class="text-center">
+        Convert video files to animated GIFs. Select a section of your video and generate a high-quality GIF.
+      </p>
+
+      <div id="error"></div>
+
+      <div class="box" id="dropZone">
+        <h2>📹 Drop Video Here</h2>
+        <p>or click to select a video file</p>
+        <input
+          type="file"
+          id="fileInput"
+          accept="video/*"
+          style="display: none"
+        />
+      </div>
+
+      <div class="video-container" id="videoContainer">
+        <h3 class="text-center">Video Preview</h3>
+        <video id="videoPreview" controls></video>
+
+        <div class="controls-grid">
+          <div class="control-group">
+            <label for="startTime">Start Time (seconds)</label>
+            <div class="time-input-group">
+              <input
+                type="number"
+                id="startTime"
+                min="0"
+                step="0.1"
+                value="0"
+              />
+              <button id="setStartBtn" class="secondary">Set Current</button>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label for="endTime">End Time (seconds)</label>
+            <div class="time-input-group">
+              <input
+                type="number"
+                id="endTime"
+                min="0"
+                step="0.1"
+                value="0"
+              />
+              <button id="setEndBtn" class="secondary">Set Current</button>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label for="fps">Frame Rate (FPS)</label>
+            <input
+              type="number"
+              id="fps"
+              min="1"
+              max="30"
+              value="10"
+            />
+          </div>
+
+          <div class="control-group">
+            <label for="width">Width (pixels, -1 for original)</label>
+            <input
+              type="number"
+              id="width"
+              min="-1"
+              step="1"
+              value="480"
+            />
+          </div>
+        </div>
+
+        <p class="info-text" id="durationInfo"></p>
+
+        <div class="button-group">
+          <button id="generateBtn">🎬 Generate GIF</button>
+          <button id="clearBtn" class="secondary">Clear</button>
+        </div>
+      </div>
+
+      <div class="progress" id="progress">
+        <div class="progress-bar">
+          <div class="progress-bar-fill" id="progressFill"></div>
+          <div class="progress-text" id="progressText">0%</div>
+        </div>
+      </div>
+
+      <div class="preview-container" id="previewContainer">
+        <h3 class="text-center">GIF Preview</h3>
+        <img id="gifPreview" alt="Generated GIF" />
+        <p class="info-text" id="gifInfo"></p>
+        <div class="button-group">
+          <button id="downloadBtn">💾 Download GIF</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.7/dist/umd/ffmpeg.js"></script>
+    <script>
+      const dropZone = document.getElementById("dropZone");
+      const fileInput = document.getElementById("fileInput");
+      const videoContainer = document.getElementById("videoContainer");
+      const videoPreview = document.getElementById("videoPreview");
+      const startTimeInput = document.getElementById("startTime");
+      const endTimeInput = document.getElementById("endTime");
+      const fpsInput = document.getElementById("fps");
+      const widthInput = document.getElementById("width");
+      const generateBtn = document.getElementById("generateBtn");
+      const clearBtn = document.getElementById("clearBtn");
+      const setStartBtn = document.getElementById("setStartBtn");
+      const setEndBtn = document.getElementById("setEndBtn");
+      const durationInfo = document.getElementById("durationInfo");
+      const progress = document.getElementById("progress");
+      const progressFill = document.getElementById("progressFill");
+      const progressText = document.getElementById("progressText");
+      const previewContainer = document.getElementById("previewContainer");
+      const gifPreview = document.getElementById("gifPreview");
+      const gifInfo = document.getElementById("gifInfo");
+      const downloadBtn = document.getElementById("downloadBtn");
+      const errorDiv = document.getElementById("error");
+
+      let currentVideoFile = null;
+      let ffmpeg = null;
+      let generatedGifBlob = null;
+
+      // Initialize FFmpeg
+      async function loadFFmpeg() {
+        if (ffmpeg) return;
+
+        try {
+          showProgress("Loading FFmpeg...", 0);
+          const { FFmpeg } = FFmpegWASM;
+          ffmpeg = new FFmpeg();
+
+          ffmpeg.on("log", ({ message }) => {
+            console.log(message);
+          });
+
+          ffmpeg.on("progress", ({ progress: p, time }) => {
+            const percent = Math.round(p * 100);
+            showProgress(`Converting: ${time / 1000000}s processed`, percent);
+          });
+
+          await ffmpeg.load({
+            coreURL: "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.4/dist/umd/ffmpeg-core.js",
+          });
+
+          hideProgress();
+        } catch (error) {
+          showError("Failed to load FFmpeg: " + error.message);
+          throw error;
+        }
+      }
+
+      // Drag and drop handlers
+      dropZone.addEventListener("click", () => fileInput.click());
+
+      dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.classList.add("dragover");
+      });
+
+      dropZone.addEventListener("dragleave", () => {
+        dropZone.classList.remove("dragover");
+      });
+
+      dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropZone.classList.remove("dragover");
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith("video/")) {
+          handleVideoFile(file);
+        } else {
+          showError("Please drop a valid video file");
+        }
+      });
+
+      fileInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          handleVideoFile(file);
+        }
+      });
+
+      // Handle video file
+      function handleVideoFile(file) {
+        hideError();
+        currentVideoFile = file;
+
+        const url = URL.createObjectURL(file);
+        videoPreview.src = url;
+
+        videoPreview.onloadedmetadata = () => {
+          const duration = videoPreview.duration;
+          endTimeInput.value = duration.toFixed(2);
+          endTimeInput.max = duration;
+          startTimeInput.max = duration;
+          updateDurationInfo();
+          videoContainer.style.display = "block";
+          previewContainer.style.display = "none";
+        };
+      }
+
+      // Set current time as start/end
+      setStartBtn.addEventListener("click", () => {
+        startTimeInput.value = videoPreview.currentTime.toFixed(2);
+        updateDurationInfo();
+      });
+
+      setEndBtn.addEventListener("click", () => {
+        endTimeInput.value = videoPreview.currentTime.toFixed(2);
+        updateDurationInfo();
+      });
+
+      // Update duration info
+      function updateDurationInfo() {
+        const start = parseFloat(startTimeInput.value) || 0;
+        const end = parseFloat(endTimeInput.value) || 0;
+        const duration = Math.max(0, end - start);
+        durationInfo.textContent = `GIF Duration: ${duration.toFixed(2)} seconds`;
+      }
+
+      startTimeInput.addEventListener("input", updateDurationInfo);
+      endTimeInput.addEventListener("input", updateDurationInfo);
+
+      // Generate GIF
+      generateBtn.addEventListener("click", async () => {
+        if (!currentVideoFile) return;
+
+        const start = parseFloat(startTimeInput.value) || 0;
+        const end = parseFloat(endTimeInput.value) || 0;
+        const fps = parseInt(fpsInput.value) || 10;
+        const width = parseInt(widthInput.value) || -1;
+
+        if (start >= end) {
+          showError("End time must be greater than start time");
+          return;
+        }
+
+        if (end - start > 30) {
+          showError("GIF duration cannot exceed 30 seconds (for performance reasons)");
+          return;
+        }
+
+        hideError();
+        generateBtn.disabled = true;
+
+        try {
+          await loadFFmpeg();
+
+          showProgress("Preparing video...", 10);
+
+          // Write video file to FFmpeg filesystem
+          const videoData = await currentVideoFile.arrayBuffer();
+          const videoFileName = "input" + getFileExtension(currentVideoFile.name);
+          await ffmpeg.writeFile(videoFileName, new Uint8Array(videoData));
+
+          showProgress("Converting to GIF...", 30);
+
+          // Build FFmpeg command
+          const duration = end - start;
+          const scaleFilter = width > 0 ? `scale=${width}:-1:flags=lanczos` : `scale=iw:ih:flags=lanczos`;
+
+          // FFmpeg command for high-quality GIF
+          const args = [
+            "-i", videoFileName,
+            "-ss", start.toString(),
+            "-t", duration.toString(),
+            "-vf", `${scaleFilter},fps=${fps},split[s0][s1];[s0]palettegen=max_colors=256[p];[s1][p]paletteuse=dither=bayer:bayer_scale=5`,
+            "-loop", "0",
+            "output.gif"
+          ];
+
+          await ffmpeg.exec(args);
+
+          showProgress("Reading output...", 90);
+
+          // Read the output GIF
+          const data = await ffmpeg.readFile("output.gif");
+          generatedGifBlob = new Blob([data.buffer], { type: "image/gif" });
+
+          // Display preview
+          const gifUrl = URL.createObjectURL(generatedGifBlob);
+          gifPreview.src = gifUrl;
+
+          const sizeKB = (generatedGifBlob.size / 1024).toFixed(2);
+          gifInfo.textContent = `Size: ${sizeKB} KB | Duration: ${duration.toFixed(2)}s | FPS: ${fps}`;
+
+          previewContainer.style.display = "block";
+          hideProgress();
+
+          // Clean up FFmpeg files
+          await ffmpeg.deleteFile(videoFileName);
+          await ffmpeg.deleteFile("output.gif");
+
+        } catch (error) {
+          showError("Failed to generate GIF: " + error.message);
+          console.error(error);
+        } finally {
+          generateBtn.disabled = false;
+        }
+      });
+
+      // Download GIF
+      downloadBtn.addEventListener("click", () => {
+        if (!generatedGifBlob) return;
+
+        const url = URL.createObjectURL(generatedGifBlob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "converted.gif";
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+
+      // Clear button
+      clearBtn.addEventListener("click", () => {
+        currentVideoFile = null;
+        generatedGifBlob = null;
+        videoPreview.src = "";
+        gifPreview.src = "";
+        fileInput.value = "";
+        videoContainer.style.display = "none";
+        previewContainer.style.display = "none";
+        hideError();
+        hideProgress();
+      });
+
+      // Utility functions
+      function getFileExtension(filename) {
+        const ext = filename.substring(filename.lastIndexOf("."));
+        return ext || ".mp4";
+      }
+
+      function showProgress(message, percent) {
+        progress.style.display = "block";
+        progressFill.style.width = percent + "%";
+        progressText.textContent = message;
+      }
+
+      function hideProgress() {
+        progress.style.display = "none";
+      }
+
+      function showError(message) {
+        errorDiv.textContent = message;
+        errorDiv.style.display = "block";
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      function hideError() {
+        errorDiv.style.display = "none";
+      }
+    </script>
+  </body>
+</html>
