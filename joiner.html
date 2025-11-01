@@ -526,7 +526,7 @@
             outputUrl = URL.createObjectURL(blob);
             const sizeLabel = (blob.size / (1024 * 1024)).toFixed(2);
             output.innerHTML = `
-                    <img src="${outputUrl}" alt="Result" style="max-width: 100%; border-radius: 6px;">
+                    <img src="${outputUrl}" alt="Joined media output showing two images side by side" style="max-width: 100%; border-radius: 6px;">
                     <p style="font-size: 0.85em; opacity: 0.8;">Estimated size: ${sizeLabel} MB</p>
                     <button id="downloadBtn" class="secondary" onclick="downloadOutput()">Download ${outputFilename}</button>
                 `;
