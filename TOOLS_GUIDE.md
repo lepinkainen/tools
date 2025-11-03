@@ -10,7 +10,7 @@
 
 ## Repository Structure
 
-```
+```plain
 /home/user/tools/
 ├── *.html              # Tool sources (root)
 ├── static/
