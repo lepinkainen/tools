@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emoji Icon Generator</title>
+    <link rel="stylesheet" href="../static/common.css">
+    <style>
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-group label {
+            font-size: 0.9em;
+            color: #00d9ff;
+        }
+
+        .emoji-input {
+            font-size: 2em;
+            text-align: center;
+            padding: 10px;
+        }
+
+        .preview-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        #preview {
+            border: 2px dashed #ff1493;
+            display: inline-block;
+            margin: 20px auto;
+            background: repeating-conic-gradient(#1a1a2e 0% 25%, #16213e 0% 50%) 50% / 20px 20px;
+        }
+
+        .export-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .export-buttons button {
+            min-width: 80px;
+        }
+
+        .color-input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .color-input-wrapper input[type="color"] {
+            width: 50px;
+            height: 40px;
+            border: 1px solid #ff1493;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        .color-input-wrapper input[type="text"] {
+            flex: 1;
+        }
+
+        .share-section {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .share-url {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.9em;
+        }
+
+        .quick-sizes {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .quick-sizes button {
+            flex: 1;
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Emoji Icon Generator</h1>
+        <p class="text-center">Create custom emoji icons for Slack, Discord, and favicons</p>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="emojiInput">Emoji Base</label>
+                <input type="text" id="emojiInput" class="emoji-input" value="🎨" placeholder="Enter emoji">
+            </div>
+
+            <div class="control-group">
+                <label for="canvasSize">Canvas Size</label>
+                <select id="canvasSize">
+                    <option value="128">128x128</option>
+                    <option value="256" selected>256x256</option>
+                    <option value="512">512x512</option>
+                </select>
+                <div class="quick-sizes">
+                    <button onclick="setSize(128)">128</button>
+                    <button onclick="setSize(256)">256</button>
+                    <button onclick="setSize(512)">512</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="bgColor">Background Color</label>
+                <div class="color-input-wrapper">
+                    <input type="color" id="bgColor" value="#ff1493">
+                    <input type="text" id="bgColorText" value="#ff1493">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="padding">Padding (%)</label>
+                <input type="range" id="padding" min="0" max="40" value="10">
+                <span id="paddingValue">10%</span>
+            </div>
+
+            <div class="control-group">
+                <label for="borderRadius">Border Radius (%)</label>
+                <input type="range" id="borderRadius" min="0" max="50" value="0">
+                <span id="borderRadiusValue">0%</span>
+            </div>
+
+            <div class="control-group">
+                <label for="textOverlay">Text Overlay (optional)</label>
+                <input type="text" id="textOverlay" placeholder="Optional text">
+            </div>
+
+            <div class="control-group">
+                <label for="textColor">Text Color</label>
+                <div class="color-input-wrapper">
+                    <input type="color" id="textColor" value="#ffffff">
+                    <input type="text" id="textColorText" value="#ffffff">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="textPosition">Text Position</label>
+                <select id="textPosition">
+                    <option value="bottom">Bottom</option>
+                    <option value="top">Top</option>
+                    <option value="center">Center</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="shadow">Shadow/Glow</label>
+                <input type="checkbox" id="shadow">
+            </div>
+
+            <div class="control-group">
+                <label for="shadowColor">Shadow Color</label>
+                <div class="color-input-wrapper">
+                    <input type="color" id="shadowColor" value="#000000">
+                    <input type="text" id="shadowColorText" value="#000000">
+                </div>
+            </div>
+        </div>
+
+        <div class="preview-section">
+            <h2>Preview</h2>
+            <canvas id="preview"></canvas>
+        </div>
+
+        <div class="export-buttons">
+            <button onclick="exportIcon(16)">Export 16x16</button>
+            <button onclick="exportIcon(32)">Export 32x32</button>
+            <button onclick="exportIcon(64)">Export 64x64</button>
+            <button onclick="exportIcon(128)">Export 128x128</button>
+            <button onclick="exportIcon(256)">Export 256x256</button>
+            <button onclick="exportIcon(512)">Export 512x512</button>
+        </div>
+
+        <div class="share-section box">
+            <h3>Share Your Icon</h3>
+            <p>Copy this URL to share your icon configuration:</p>
+            <input type="text" id="shareUrl" class="share-url" readonly>
+            <button onclick="copyShareUrl()" class="mt-2">Copy URL</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('preview');
+        const ctx = canvas.getContext('2d');
+
+        // Settings object
+        const settings = {
+            emoji: '🎨',
+            size: 256,
+            bgColor: '#ff1493',
+            padding: 10,
+            borderRadius: 0,
+            textOverlay: '',
+            textColor: '#ffffff',
+            textPosition: 'bottom',
+            shadow: false,
+            shadowColor: '#000000'
+        };
+
+        // Initialize
+        function init() {
+            // Set up event listeners
+            document.getElementById('emojiInput').addEventListener('input', (e) => {
+                settings.emoji = e.target.value;
+                render();
+            });
+
+            document.getElementById('canvasSize').addEventListener('change', (e) => {
+                settings.size = parseInt(e.target.value);
+                render();
+            });
+
+            document.getElementById('bgColor').addEventListener('input', (e) => {
+                settings.bgColor = e.target.value;
+                document.getElementById('bgColorText').value = e.target.value;
+                render();
+            });
+
+            document.getElementById('bgColorText').addEventListener('input', (e) => {
+                settings.bgColor = e.target.value;
+                document.getElementById('bgColor').value = e.target.value;
+                render();
+            });
+
+            document.getElementById('padding').addEventListener('input', (e) => {
+                settings.padding = parseInt(e.target.value);
+                document.getElementById('paddingValue').textContent = e.target.value + '%';
+                render();
+            });
+
+            document.getElementById('borderRadius').addEventListener('input', (e) => {
+                settings.borderRadius = parseInt(e.target.value);
+                document.getElementById('borderRadiusValue').textContent = e.target.value + '%';
+                render();
+            });
+
+            document.getElementById('textOverlay').addEventListener('input', (e) => {
+                settings.textOverlay = e.target.value;
+                render();
+            });
+
+            document.getElementById('textColor').addEventListener('input', (e) => {
+                settings.textColor = e.target.value;
+                document.getElementById('textColorText').value = e.target.value;
+                render();
+            });
+
+            document.getElementById('textColorText').addEventListener('input', (e) => {
+                settings.textColor = e.target.value;
+                document.getElementById('textColor').value = e.target.value;
+                render();
+            });
+
+            document.getElementById('textPosition').addEventListener('change', (e) => {
+                settings.textPosition = e.target.value;
+                render();
+            });
+
+            document.getElementById('shadow').addEventListener('change', (e) => {
+                settings.shadow = e.target.checked;
+                render();
+            });
+
+            document.getElementById('shadowColor').addEventListener('input', (e) => {
+                settings.shadowColor = e.target.value;
+                document.getElementById('shadowColorText').value = e.target.value;
+                render();
+            });
+
+            document.getElementById('shadowColorText').addEventListener('input', (e) => {
+                settings.shadowColor = e.target.value;
+                document.getElementById('shadowColor').value = e.target.value;
+                render();
+            });
+
+            // Load from URL hash
+            loadFromHash();
+
+            // Render initial state
+            render();
+        }
+
+        // Render the icon
+        function render() {
+            const size = settings.size;
+            canvas.width = size;
+            canvas.height = size;
+
+            // Clear canvas
+            ctx.clearRect(0, 0, size, size);
+
+            // Draw background with border radius
+            if (settings.borderRadius > 0) {
+                const radius = (size * settings.borderRadius) / 100;
+                ctx.beginPath();
+                ctx.roundRect(0, 0, size, size, radius);
+                ctx.fillStyle = settings.bgColor;
+                ctx.fill();
+                ctx.clip();
+            } else {
+                ctx.fillStyle = settings.bgColor;
+                ctx.fillRect(0, 0, size, size);
+            }
+
+            // Calculate padding
+            const paddingPx = (size * settings.padding) / 100;
+            const contentSize = size - (paddingPx * 2);
+
+            // Draw shadow if enabled
+            if (settings.shadow) {
+                ctx.shadowColor = settings.shadowColor;
+                ctx.shadowBlur = size * 0.05;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+            }
+
+            // Draw emoji
+            ctx.font = `${contentSize * 0.7}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            let emojiY = size / 2;
+            if (settings.textOverlay) {
+                if (settings.textPosition === 'bottom') {
+                    emojiY = size / 2 - contentSize * 0.15;
+                } else if (settings.textPosition === 'top') {
+                    emojiY = size / 2 + contentSize * 0.15;
+                }
+            }
+
+            ctx.fillText(settings.emoji, size / 2, emojiY);
+
+            // Reset shadow
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+
+            // Draw text overlay if present
+            if (settings.textOverlay) {
+                ctx.fillStyle = settings.textColor;
+                ctx.font = `bold ${contentSize * 0.25}px Arial`;
+
+                let textY;
+                if (settings.textPosition === 'bottom') {
+                    textY = size - paddingPx - contentSize * 0.15;
+                } else if (settings.textPosition === 'top') {
+                    textY = paddingPx + contentSize * 0.15;
+                } else {
+                    textY = size / 2;
+                }
+
+                // Draw text with outline for better visibility
+                ctx.strokeStyle = settings.bgColor;
+                ctx.lineWidth = contentSize * 0.02;
+                ctx.strokeText(settings.textOverlay, size / 2, textY);
+                ctx.fillText(settings.textOverlay, size / 2, textY);
+            }
+
+            // Update share URL
+            updateShareUrl();
+        }
+
+        // Export icon at specific size
+        function exportIcon(targetSize) {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = targetSize;
+            tempCanvas.height = targetSize;
+            const tempCtx = tempCanvas.getContext('2d');
+
+            // Save current size
+            const originalSize = settings.size;
+
+            // Temporarily change size for export
+            settings.size = targetSize;
+
+            // Render to temp canvas
+            canvas.width = targetSize;
+            canvas.height = targetSize;
+            render();
+
+            // Download
+            tempCanvas.toBlob((blob) => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = canvas.toDataURL();
+                a.download = `emoji-icon-${targetSize}x${targetSize}.png`;
+                a.click();
+                URL.revokeObjectURL(url);
+
+                // Restore original size
+                settings.size = originalSize;
+                render();
+            });
+        }
+
+        // URL hash handling
+        function updateShareUrl() {
+            const encoded = encodeSettings(settings);
+            const url = window.location.href.split('#')[0] + '#' + encoded;
+            document.getElementById('shareUrl').value = url;
+            window.location.hash = encoded;
+        }
+
+        function loadFromHash() {
+            const hash = window.location.hash.substring(1);
+            if (hash) {
+                const decoded = decodeSettings(hash);
+                Object.assign(settings, decoded);
+                updateUIFromSettings();
+            }
+        }
+
+        function encodeSettings(settings) {
+            return btoa(JSON.stringify(settings));
+        }
+
+        function decodeSettings(encoded) {
+            try {
+                return JSON.parse(atob(encoded));
+            } catch (e) {
+                console.error('Failed to decode settings:', e);
+                return {};
+            }
+        }
+
+        function updateUIFromSettings() {
+            document.getElementById('emojiInput').value = settings.emoji;
+            document.getElementById('canvasSize').value = settings.size;
+            document.getElementById('bgColor').value = settings.bgColor;
+            document.getElementById('bgColorText').value = settings.bgColor;
+            document.getElementById('padding').value = settings.padding;
+            document.getElementById('paddingValue').textContent = settings.padding + '%';
+            document.getElementById('borderRadius').value = settings.borderRadius;
+            document.getElementById('borderRadiusValue').textContent = settings.borderRadius + '%';
+            document.getElementById('textOverlay').value = settings.textOverlay;
+            document.getElementById('textColor').value = settings.textColor;
+            document.getElementById('textColorText').value = settings.textColor;
+            document.getElementById('textPosition').value = settings.textPosition;
+            document.getElementById('shadow').checked = settings.shadow;
+            document.getElementById('shadowColor').value = settings.shadowColor;
+            document.getElementById('shadowColorText').value = settings.shadowColor;
+        }
+
+        function copyShareUrl() {
+            const urlInput = document.getElementById('shareUrl');
+            urlInput.select();
+            document.execCommand('copy');
+            alert('URL copied to clipboard!');
+        }
+
+        function setSize(size) {
+            settings.size = size;
+            document.getElementById('canvasSize').value = size;
+            render();
+        }
+
+        // Handle hash changes (browser back/forward)
+        window.addEventListener('hashchange', () => {
+            loadFromHash();
+            render();
+        });
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
