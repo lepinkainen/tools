@@ -42,6 +42,64 @@
             background: repeating-conic-gradient(#1a1a2e 0% 25%, #16213e 0% 50%) 50% / 20px 20px;
         }
 
+        .pixel-editor-section {
+            text-align: center;
+            margin-bottom: 30px;
+            display: none;
+        }
+
+        .pixel-editor-section.active {
+            display: block;
+        }
+
+        #pixelCanvas {
+            border: 2px solid #ff1493;
+            display: inline-block;
+            cursor: crosshair;
+            image-rendering: pixelated;
+            background: repeating-conic-gradient(#1a1a2e 0% 25%, #16213e 0% 50%) 50% / 20px 20px;
+        }
+
+        .pixel-tools {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .pixel-tools button {
+            min-width: 100px;
+        }
+
+        .pixel-tools button.active {
+            background: #ff1493;
+            color: #0a0a1e;
+        }
+
+        .draw-color-picker {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .draw-color-picker input[type="color"] {
+            width: 60px;
+            height: 60px;
+            border: 2px solid #ff1493;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        .zoom-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
         .export-buttons {
             display: flex;
             flex-wrap: wrap;
@@ -95,6 +153,15 @@
             flex: 1;
         }
 
+        .mode-toggle {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .mode-toggle button {
+            min-width: 150px;
+        }
+
         @media (max-width: 768px) {
             .controls {
                 grid-template-columns: 1fr;
@@ -116,14 +183,16 @@
             <div class="control-group">
                 <label for="canvasSize">Canvas Size</label>
                 <select id="canvasSize">
+                    <option value="16">16x16</option>
+                    <option value="32">32x32</option>
+                    <option value="64" selected>64x64</option>
                     <option value="128">128x128</option>
-                    <option value="256" selected>256x256</option>
-                    <option value="512">512x512</option>
                 </select>
                 <div class="quick-sizes">
+                    <button onclick="setSize(16)">16</button>
+                    <button onclick="setSize(32)">32</button>
+                    <button onclick="setSize(64)">64</button>
                     <button onclick="setSize(128)">128</button>
-                    <button onclick="setSize(256)">256</button>
-                    <button onclick="setSize(512)">512</button>
                 </div>
             </div>
 
@@ -183,9 +252,44 @@
             </div>
         </div>
 
+        <div class="mode-toggle">
+            <button onclick="togglePixelEditor()">Edit Pixels</button>
+        </div>
+
         <div class="preview-section">
             <h2>Preview</h2>
             <canvas id="preview"></canvas>
+        </div>
+
+        <div class="pixel-editor-section" id="pixelEditorSection">
+            <h2>Pixel Editor</h2>
+
+            <div class="pixel-tools">
+                <button class="tool-btn active" data-tool="draw">✏️ Draw</button>
+                <button class="tool-btn" data-tool="erase">🧹 Erase</button>
+                <button class="tool-btn" data-tool="fill">🪣 Fill</button>
+                <button class="tool-btn" data-tool="eyedropper">💧 Pick Color</button>
+            </div>
+
+            <div class="draw-color-picker">
+                <label for="drawColor">Draw Color:</label>
+                <input type="color" id="drawColor" value="#ffffff">
+            </div>
+
+            <div>
+                <canvas id="pixelCanvas"></canvas>
+            </div>
+
+            <div class="zoom-controls">
+                <button onclick="changeZoom(-1)">Zoom Out</button>
+                <span id="zoomLevel">Zoom: 8x</span>
+                <button onclick="changeZoom(1)">Zoom In</button>
+            </div>
+
+            <div class="mt-2">
+                <button onclick="clearCanvas()">Clear All</button>
+                <button onclick="applyToPreview()">Apply to Preview</button>
+            </div>
         </div>
 
         <div class="export-buttons">
@@ -193,8 +297,6 @@
             <button onclick="exportIcon(32)">Export 32x32</button>
             <button onclick="exportIcon(64)">Export 64x64</button>
             <button onclick="exportIcon(128)">Export 128x128</button>
-            <button onclick="exportIcon(256)">Export 256x256</button>
-            <button onclick="exportIcon(512)">Export 512x512</button>
         </div>
 
         <div class="share-section box">
@@ -208,11 +310,13 @@
     <script>
         const canvas = document.getElementById('preview');
         const ctx = canvas.getContext('2d');
+        const pixelCanvas = document.getElementById('pixelCanvas');
+        const pixelCtx = pixelCanvas.getContext('2d', { willReadFrequently: true });
 
         // Settings object
         const settings = {
             emoji: '🎨',
-            size: 256,
+            size: 64,
             bgColor: '#ff1493',
             padding: 10,
             borderRadius: 0,
@@ -220,20 +324,31 @@
             textColor: '#ffffff',
             textPosition: 'bottom',
             shadow: false,
-            shadowColor: '#000000'
+            shadowColor: '#000000',
+            pixelData: null
         };
+
+        // Pixel editor state
+        let currentTool = 'draw';
+        let drawColor = '#ffffff';
+        let isDrawing = false;
+        let zoom = 8;
+        let pixelEditorActive = false;
 
         // Initialize
         function init() {
-            // Set up event listeners
+            // Set up event listeners for controls
             document.getElementById('emojiInput').addEventListener('input', (e) => {
                 settings.emoji = e.target.value;
+                settings.pixelData = null;
                 render();
             });
 
             document.getElementById('canvasSize').addEventListener('change', (e) => {
                 settings.size = parseInt(e.target.value);
+                settings.pixelData = null;
                 render();
+                initPixelCanvas();
             });
 
             document.getElementById('bgColor').addEventListener('input', (e) => {
@@ -299,8 +414,58 @@
                 render();
             });
 
+            // Pixel editor tool buttons
+            document.querySelectorAll('.tool-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentTool = btn.dataset.tool;
+                });
+            });
+
+            // Draw color picker
+            document.getElementById('drawColor').addEventListener('input', (e) => {
+                drawColor = e.target.value;
+            });
+
+            // Pixel canvas mouse events
+            pixelCanvas.addEventListener('mousedown', startDrawing);
+            pixelCanvas.addEventListener('mousemove', draw);
+            pixelCanvas.addEventListener('mouseup', stopDrawing);
+            pixelCanvas.addEventListener('mouseleave', stopDrawing);
+
+            // Touch events for mobile
+            pixelCanvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const mouseEvent = new MouseEvent('mousedown', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                pixelCanvas.dispatchEvent(mouseEvent);
+            });
+
+            pixelCanvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const mouseEvent = new MouseEvent('mousemove', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                pixelCanvas.dispatchEvent(mouseEvent);
+            });
+
+            pixelCanvas.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                const mouseEvent = new MouseEvent('mouseup', {});
+                pixelCanvas.dispatchEvent(mouseEvent);
+            });
+
             // Load from URL hash
             loadFromHash();
+
+            // Initialize pixel canvas
+            initPixelCanvas();
 
             // Render initial state
             render();
@@ -312,77 +477,399 @@
             canvas.width = size;
             canvas.height = size;
 
-            // Clear canvas
-            ctx.clearRect(0, 0, size, size);
-
-            // Draw background with border radius
-            if (settings.borderRadius > 0) {
-                const radius = (size * settings.borderRadius) / 100;
-                ctx.beginPath();
-                ctx.roundRect(0, 0, size, size, radius);
-                ctx.fillStyle = settings.bgColor;
-                ctx.fill();
-                ctx.clip();
+            // If we have pixel data, use it
+            if (settings.pixelData) {
+                const img = new Image();
+                img.onload = () => {
+                    ctx.drawImage(img, 0, 0, size, size);
+                };
+                img.src = settings.pixelData;
             } else {
-                ctx.fillStyle = settings.bgColor;
-                ctx.fillRect(0, 0, size, size);
-            }
+                // Clear canvas
+                ctx.clearRect(0, 0, size, size);
+                ctx.save();
 
-            // Calculate padding
-            const paddingPx = (size * settings.padding) / 100;
-            const contentSize = size - (paddingPx * 2);
-
-            // Draw shadow if enabled
-            if (settings.shadow) {
-                ctx.shadowColor = settings.shadowColor;
-                ctx.shadowBlur = size * 0.05;
-                ctx.shadowOffsetX = 0;
-                ctx.shadowOffsetY = 0;
-            }
-
-            // Draw emoji
-            ctx.font = `${contentSize * 0.7}px Arial`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-
-            let emojiY = size / 2;
-            if (settings.textOverlay) {
-                if (settings.textPosition === 'bottom') {
-                    emojiY = size / 2 - contentSize * 0.15;
-                } else if (settings.textPosition === 'top') {
-                    emojiY = size / 2 + contentSize * 0.15;
-                }
-            }
-
-            ctx.fillText(settings.emoji, size / 2, emojiY);
-
-            // Reset shadow
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-
-            // Draw text overlay if present
-            if (settings.textOverlay) {
-                ctx.fillStyle = settings.textColor;
-                ctx.font = `bold ${contentSize * 0.25}px Arial`;
-
-                let textY;
-                if (settings.textPosition === 'bottom') {
-                    textY = size - paddingPx - contentSize * 0.15;
-                } else if (settings.textPosition === 'top') {
-                    textY = paddingPx + contentSize * 0.15;
+                // Draw background with border radius
+                if (settings.borderRadius > 0) {
+                    const radius = (size * settings.borderRadius) / 100;
+                    ctx.beginPath();
+                    ctx.roundRect(0, 0, size, size, radius);
+                    ctx.fillStyle = settings.bgColor;
+                    ctx.fill();
+                    ctx.clip();
                 } else {
-                    textY = size / 2;
+                    ctx.fillStyle = settings.bgColor;
+                    ctx.fillRect(0, 0, size, size);
                 }
 
-                // Draw text with outline for better visibility
-                ctx.strokeStyle = settings.bgColor;
-                ctx.lineWidth = contentSize * 0.02;
-                ctx.strokeText(settings.textOverlay, size / 2, textY);
-                ctx.fillText(settings.textOverlay, size / 2, textY);
+                // Calculate padding
+                const paddingPx = (size * settings.padding) / 100;
+                const contentSize = size - (paddingPx * 2);
+
+                // Draw shadow if enabled
+                if (settings.shadow) {
+                    ctx.shadowColor = settings.shadowColor;
+                    ctx.shadowBlur = size * 0.05;
+                    ctx.shadowOffsetX = 0;
+                    ctx.shadowOffsetY = 0;
+                }
+
+                // Draw emoji
+                ctx.font = `${contentSize * 0.7}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                let emojiY = size / 2;
+                if (settings.textOverlay) {
+                    if (settings.textPosition === 'bottom') {
+                        emojiY = size / 2 - contentSize * 0.15;
+                    } else if (settings.textPosition === 'top') {
+                        emojiY = size / 2 + contentSize * 0.15;
+                    }
+                }
+
+                ctx.fillText(settings.emoji, size / 2, emojiY);
+
+                // Reset shadow
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+
+                // Draw text overlay if present
+                if (settings.textOverlay) {
+                    ctx.fillStyle = settings.textColor;
+                    ctx.font = `bold ${contentSize * 0.25}px Arial`;
+
+                    let textY;
+                    if (settings.textPosition === 'bottom') {
+                        textY = size - paddingPx - contentSize * 0.15;
+                    } else if (settings.textPosition === 'top') {
+                        textY = paddingPx + contentSize * 0.15;
+                    } else {
+                        textY = size / 2;
+                    }
+
+                    // Draw text with outline for better visibility
+                    ctx.strokeStyle = settings.bgColor;
+                    ctx.lineWidth = contentSize * 0.02;
+                    ctx.strokeText(settings.textOverlay, size / 2, textY);
+                    ctx.fillText(settings.textOverlay, size / 2, textY);
+                }
+
+                ctx.restore();
             }
 
             // Update share URL
             updateShareUrl();
+        }
+
+        // Pixel editor functions
+        function initPixelCanvas() {
+            const size = settings.size;
+            pixelCanvas.width = size * zoom;
+            pixelCanvas.height = size * zoom;
+
+            // Clear the pixel canvas
+            pixelCtx.clearRect(0, 0, pixelCanvas.width, pixelCanvas.height);
+
+            // Draw transparent background pattern
+            drawTransparentPattern();
+        }
+
+        function drawTransparentPattern() {
+            const size = settings.size;
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    if ((x + y) % 2 === 0) {
+                        pixelCtx.fillStyle = '#1a1a2e';
+                    } else {
+                        pixelCtx.fillStyle = '#16213e';
+                    }
+                    pixelCtx.fillRect(x * zoom, y * zoom, zoom, zoom);
+                }
+            }
+        }
+
+        function togglePixelEditor() {
+            pixelEditorActive = !pixelEditorActive;
+            const section = document.getElementById('pixelEditorSection');
+            const previewSection = document.querySelector('.preview-section');
+            const btn = document.querySelector('.mode-toggle button');
+
+            if (pixelEditorActive) {
+                section.classList.add('active');
+                previewSection.style.display = 'none';
+                btn.textContent = 'Back to Preview';
+
+                // Load current preview into pixel editor
+                loadPreviewToPixelCanvas();
+            } else {
+                section.classList.remove('active');
+                previewSection.style.display = 'block';
+                btn.textContent = 'Edit Pixels';
+            }
+        }
+
+        function loadPreviewToPixelCanvas() {
+            const size = settings.size;
+
+            // Create a temporary canvas at actual size
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = size;
+            tempCanvas.height = size;
+            const tempCtx = tempCanvas.getContext('2d');
+
+            // Draw the current preview
+            tempCtx.drawImage(canvas, 0, 0);
+
+            // Now scale it up to the pixel canvas
+            initPixelCanvas();
+
+            // Draw each pixel
+            const imageData = tempCtx.getImageData(0, 0, size, size);
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    const i = (y * size + x) * 4;
+                    const r = imageData.data[i];
+                    const g = imageData.data[i + 1];
+                    const b = imageData.data[i + 2];
+                    const a = imageData.data[i + 3];
+
+                    if (a > 0) {
+                        pixelCtx.fillStyle = `rgba(${r},${g},${b},${a/255})`;
+                        pixelCtx.fillRect(x * zoom, y * zoom, zoom, zoom);
+                    }
+                }
+            }
+
+            // Draw grid
+            drawGrid();
+        }
+
+        function drawGrid() {
+            const size = settings.size;
+            pixelCtx.strokeStyle = 'rgba(255, 20, 147, 0.3)';
+            pixelCtx.lineWidth = 1;
+
+            for (let i = 0; i <= size; i++) {
+                pixelCtx.beginPath();
+                pixelCtx.moveTo(i * zoom, 0);
+                pixelCtx.lineTo(i * zoom, size * zoom);
+                pixelCtx.stroke();
+
+                pixelCtx.beginPath();
+                pixelCtx.moveTo(0, i * zoom);
+                pixelCtx.lineTo(size * zoom, i * zoom);
+                pixelCtx.stroke();
+            }
+        }
+
+        function getPixelPos(e) {
+            const rect = pixelCanvas.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rect.left) / zoom);
+            const y = Math.floor((e.clientY - rect.top) / zoom);
+            return { x, y };
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            const pos = getPixelPos(e);
+
+            if (currentTool === 'eyedropper') {
+                pickColor(pos.x, pos.y);
+                isDrawing = false;
+            } else if (currentTool === 'fill') {
+                floodFill(pos.x, pos.y);
+                isDrawing = false;
+            } else {
+                drawPixel(pos.x, pos.y);
+            }
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            if (currentTool === 'fill' || currentTool === 'eyedropper') return;
+
+            const pos = getPixelPos(e);
+            drawPixel(pos.x, pos.y);
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        function drawPixel(x, y) {
+            const size = settings.size;
+            if (x < 0 || x >= size || y < 0 || y >= size) return;
+
+            if (currentTool === 'erase') {
+                // Draw transparent pattern
+                if ((x + y) % 2 === 0) {
+                    pixelCtx.fillStyle = '#1a1a2e';
+                } else {
+                    pixelCtx.fillStyle = '#16213e';
+                }
+            } else {
+                pixelCtx.fillStyle = drawColor;
+            }
+
+            pixelCtx.fillRect(x * zoom, y * zoom, zoom, zoom);
+
+            // Redraw grid for this pixel
+            pixelCtx.strokeStyle = 'rgba(255, 20, 147, 0.3)';
+            pixelCtx.lineWidth = 1;
+            pixelCtx.strokeRect(x * zoom, y * zoom, zoom, zoom);
+        }
+
+        function pickColor(x, y) {
+            const size = settings.size;
+            if (x < 0 || x >= size || y < 0 || y >= size) return;
+
+            const imageData = pixelCtx.getImageData(x * zoom, y * zoom, 1, 1);
+            const r = imageData.data[0];
+            const g = imageData.data[1];
+            const b = imageData.data[2];
+
+            const hex = '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+            drawColor = hex;
+            document.getElementById('drawColor').value = hex;
+        }
+
+        function floodFill(x, y) {
+            const size = settings.size;
+            if (x < 0 || x >= size || y < 0 || y >= size) return;
+
+            const imageData = pixelCtx.getImageData(0, 0, size * zoom, size * zoom);
+            const targetColor = getPixelColor(imageData, x * zoom, y * zoom);
+            const fillColor = hexToRgb(drawColor);
+
+            if (colorsMatch(targetColor, fillColor)) return;
+
+            const stack = [[x, y]];
+            const visited = new Set();
+
+            while (stack.length > 0) {
+                const [cx, cy] = stack.pop();
+                const key = `${cx},${cy}`;
+
+                if (visited.has(key)) continue;
+                if (cx < 0 || cx >= size || cy < 0 || cy >= size) continue;
+
+                const currentColor = getPixelColor(imageData, cx * zoom, cy * zoom);
+                if (!colorsMatch(currentColor, targetColor)) continue;
+
+                visited.add(key);
+
+                // Fill the pixel
+                pixelCtx.fillStyle = drawColor;
+                pixelCtx.fillRect(cx * zoom, cy * zoom, zoom, zoom);
+
+                // Add neighbors
+                stack.push([cx + 1, cy]);
+                stack.push([cx - 1, cy]);
+                stack.push([cx, cy + 1]);
+                stack.push([cx, cy - 1]);
+            }
+
+            drawGrid();
+        }
+
+        function getPixelColor(imageData, x, y) {
+            const i = (y * imageData.width + x) * 4;
+            return {
+                r: imageData.data[i],
+                g: imageData.data[i + 1],
+                b: imageData.data[i + 2],
+                a: imageData.data[i + 3]
+            };
+        }
+
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16),
+                a: 255
+            } : null;
+        }
+
+        function colorsMatch(c1, c2) {
+            return c1.r === c2.r && c1.g === c2.g && c1.b === c2.b;
+        }
+
+        function clearCanvas() {
+            initPixelCanvas();
+        }
+
+        function applyToPreview() {
+            // Get the pixel canvas data at actual size
+            const size = settings.size;
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = size;
+            tempCanvas.height = size;
+            const tempCtx = tempCanvas.getContext('2d');
+
+            // Scale down from pixel canvas
+            tempCtx.drawImage(pixelCanvas, 0, 0, size * zoom, size * zoom, 0, 0, size, size);
+
+            // Store as pixel data
+            settings.pixelData = tempCanvas.toDataURL();
+
+            // Render preview
+            render();
+
+            // Go back to preview mode
+            togglePixelEditor();
+        }
+
+        function changeZoom(direction) {
+            const oldZoom = zoom;
+            if (direction > 0) {
+                zoom = Math.min(zoom + 2, 20);
+            } else {
+                zoom = Math.max(zoom - 2, 2);
+            }
+
+            if (zoom !== oldZoom) {
+                // Save current state
+                const size = settings.size;
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = size;
+                tempCanvas.height = size;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(pixelCanvas, 0, 0, size * oldZoom, size * oldZoom, 0, 0, size, size);
+
+                // Resize and redraw
+                pixelCanvas.width = size * zoom;
+                pixelCanvas.height = size * zoom;
+
+                // Redraw from saved state
+                const imageData = tempCtx.getImageData(0, 0, size, size);
+                for (let y = 0; y < size; y++) {
+                    for (let x = 0; x < size; x++) {
+                        const i = (y * size + x) * 4;
+                        const r = imageData.data[i];
+                        const g = imageData.data[i + 1];
+                        const b = imageData.data[i + 2];
+                        const a = imageData.data[i + 3];
+
+                        if (a === 0) {
+                            // Draw transparent pattern
+                            if ((x + y) % 2 === 0) {
+                                pixelCtx.fillStyle = '#1a1a2e';
+                            } else {
+                                pixelCtx.fillStyle = '#16213e';
+                            }
+                        } else {
+                            pixelCtx.fillStyle = `rgba(${r},${g},${b},${a/255})`;
+                        }
+                        pixelCtx.fillRect(x * zoom, y * zoom, zoom, zoom);
+                    }
+                }
+
+                drawGrid();
+                document.getElementById('zoomLevel').textContent = `Zoom: ${zoom}x`;
+            }
         }
 
         // Export icon at specific size
