@@ -162,9 +162,79 @@
             min-width: 150px;
         }
 
+        .emoji-picker {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .emoji-categories {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .emoji-category-btn {
+            min-width: 80px;
+            padding: 8px 15px;
+        }
+
+        .emoji-category-btn.active {
+            background: #ff1493;
+            color: #0a0a1e;
+        }
+
+        .emoji-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+            gap: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 15px;
+            border: 2px dashed #00d9ff;
+            background: rgba(0, 217, 255, 0.05);
+        }
+
+        .emoji-option {
+            font-size: 2em;
+            padding: 10px;
+            cursor: pointer;
+            background: transparent;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .emoji-option:hover {
+            border-color: #ff1493;
+            background: rgba(255, 20, 147, 0.1);
+            transform: scale(1.2);
+        }
+
+        .advanced-options {
+            margin-bottom: 30px;
+        }
+
+        .advanced-options-toggle {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .advanced-options-content {
+            display: none;
+        }
+
+        .advanced-options-content.visible {
+            display: block;
+        }
+
         @media (max-width: 768px) {
             .controls {
                 grid-template-columns: 1fr;
+            }
+
+            .emoji-grid {
+                grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
             }
         }
     </style>
@@ -174,12 +244,26 @@
         <h1>Emoji Icon Generator</h1>
         <p class="text-center">Create custom emoji icons for Slack, Discord, and favicons</p>
 
-        <div class="controls">
+        <div class="emoji-picker box">
+            <h3>Select Emoji</h3>
             <div class="control-group">
-                <label for="emojiInput">Emoji Base</label>
-                <input type="text" id="emojiInput" class="emoji-input" value="🎨" placeholder="Enter emoji">
+                <label for="emojiInput">Or paste your own:</label>
+                <input type="text" id="emojiInput" class="emoji-input" value="🎨" placeholder="Paste emoji here">
             </div>
 
+            <div class="emoji-categories">
+                <button class="emoji-category-btn active" onclick="showEmojiCategory('smileys')">😊 Smileys</button>
+                <button class="emoji-category-btn" onclick="showEmojiCategory('animals')">🐶 Animals</button>
+                <button class="emoji-category-btn" onclick="showEmojiCategory('food')">🍕 Food</button>
+                <button class="emoji-category-btn" onclick="showEmojiCategory('activities')">⚽ Activities</button>
+                <button class="emoji-category-btn" onclick="showEmojiCategory('objects')">💡 Objects</button>
+                <button class="emoji-category-btn" onclick="showEmojiCategory('symbols')">❤️ Symbols</button>
+            </div>
+
+            <div class="emoji-grid" id="emojiGrid"></div>
+        </div>
+
+        <div class="controls">
             <div class="control-group">
                 <label for="canvasSize">Canvas Size</label>
                 <select id="canvasSize">
@@ -197,71 +281,71 @@
             </div>
 
             <div class="control-group">
-                <label for="bgColor">Background Color</label>
-                <div class="color-input-wrapper">
-                    <input type="color" id="bgColor" value="#ff1493">
-                    <input type="text" id="bgColorText" value="#ff1493">
-                </div>
-            </div>
-
-            <div class="control-group">
                 <label for="padding">Padding (%)</label>
                 <input type="range" id="padding" min="0" max="40" value="10">
                 <span id="paddingValue">10%</span>
             </div>
+        </div>
 
-            <div class="control-group">
-                <label for="borderRadius">Border Radius (%)</label>
-                <input type="range" id="borderRadius" min="0" max="50" value="0">
-                <span id="borderRadiusValue">0%</span>
+        <div class="advanced-options">
+            <div class="advanced-options-toggle">
+                <button onclick="toggleAdvancedOptions()">⚙️ Advanced Options</button>
             </div>
+            <div class="advanced-options-content" id="advancedOptions">
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="bgColor">Background Color</label>
+                        <div class="color-input-wrapper">
+                            <input type="color" id="bgColor" value="#00000000">
+                            <input type="text" id="bgColorText" value="transparent">
+                        </div>
+                    </div>
 
-            <div class="control-group">
-                <label for="textOverlay">Text Overlay (optional)</label>
-                <input type="text" id="textOverlay" placeholder="Optional text">
-            </div>
+                    <div class="control-group">
+                        <label for="borderRadius">Border Radius (%)</label>
+                        <input type="range" id="borderRadius" min="0" max="50" value="0">
+                        <span id="borderRadiusValue">0%</span>
+                    </div>
 
-            <div class="control-group">
-                <label for="textColor">Text Color</label>
-                <div class="color-input-wrapper">
-                    <input type="color" id="textColor" value="#ffffff">
-                    <input type="text" id="textColorText" value="#ffffff">
+                    <div class="control-group">
+                        <label for="textOverlay">Text Overlay (optional)</label>
+                        <input type="text" id="textOverlay" placeholder="Optional text">
+                    </div>
+
+                    <div class="control-group">
+                        <label for="textColor">Text Color</label>
+                        <div class="color-input-wrapper">
+                            <input type="color" id="textColor" value="#ffffff">
+                            <input type="text" id="textColorText" value="#ffffff">
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="textPosition">Text Position</label>
+                        <select id="textPosition">
+                            <option value="bottom">Bottom</option>
+                            <option value="top">Top</option>
+                            <option value="center">Center</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="shadow">Shadow/Glow</label>
+                        <input type="checkbox" id="shadow">
+                    </div>
+
+                    <div class="control-group">
+                        <label for="shadowColor">Shadow Color</label>
+                        <div class="color-input-wrapper">
+                            <input type="color" id="shadowColor" value="#000000">
+                            <input type="text" id="shadowColorText" value="#000000">
+                        </div>
+                    </div>
                 </div>
             </div>
-
-            <div class="control-group">
-                <label for="textPosition">Text Position</label>
-                <select id="textPosition">
-                    <option value="bottom">Bottom</option>
-                    <option value="top">Top</option>
-                    <option value="center">Center</option>
-                </select>
-            </div>
-
-            <div class="control-group">
-                <label for="shadow">Shadow/Glow</label>
-                <input type="checkbox" id="shadow">
-            </div>
-
-            <div class="control-group">
-                <label for="shadowColor">Shadow Color</label>
-                <div class="color-input-wrapper">
-                    <input type="color" id="shadowColor" value="#000000">
-                    <input type="text" id="shadowColorText" value="#000000">
-                </div>
-            </div>
         </div>
 
-        <div class="mode-toggle">
-            <button onclick="togglePixelEditor()">Edit Pixels</button>
-        </div>
-
-        <div class="preview-section">
-            <h2>Preview</h2>
-            <canvas id="preview"></canvas>
-        </div>
-
-        <div class="pixel-editor-section" id="pixelEditorSection">
+        <div class="pixel-editor-section active" id="pixelEditorSection">
             <h2>Pixel Editor</h2>
 
             <div class="pixel-tools">
@@ -288,8 +372,17 @@
 
             <div class="mt-2">
                 <button onclick="clearCanvas()">Clear All</button>
-                <button onclick="applyToPreview()">Apply to Preview</button>
+                <button onclick="loadEmojiToPixelCanvas()">Load Emoji</button>
             </div>
+        </div>
+
+        <div class="preview-section" id="previewSection" style="display: none;">
+            <h2>Preview</h2>
+            <canvas id="preview"></canvas>
+        </div>
+
+        <div class="mode-toggle">
+            <button onclick="toggleView()">👁️ Toggle Preview/Editor</button>
         </div>
 
         <div class="export-buttons">
@@ -313,11 +406,21 @@
         const pixelCanvas = document.getElementById('pixelCanvas');
         const pixelCtx = pixelCanvas.getContext('2d', { willReadFrequently: true });
 
+        // Emoji categories
+        const emojiCategories = {
+            smileys: ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃', '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙', '🥲', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🤐', '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '🤥', '😌', '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢', '🤮', '🤧', '🥵', '🥶', '🥴', '😵', '🤯', '🤠', '🥳', '🥸', '😎', '🤓', '🧐'],
+            animals: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐤', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🐛', '🦋', '🐌', '🐞', '🐜', '🦟', '🦗', '🕷️', '🦂', '🐢', '🐍', '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆', '🦓', '🦍', '🦧', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘', '🐃', '🐂', '🐄', '🐎', '🐖', '🐏', '🐑', '🦙', '🐐', '🦌', '🐕', '🐩', '🦮', '🐈', '🐓', '🦃', '🦚', '🦜', '🦢', '🦩', '🕊️', '🐇', '🦝', '🦨', '🦡', '🦦', '🦥', '🐁', '🐀', '🐿️'],
+            food: ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌶️', '🫑', '🌽', '🥕', '🫒', '🧄', '🧅', '🥔', '🍠', '🥐', '🥯', '🍞', '🥖', '🥨', '🧀', '🥚', '🍳', '🧈', '🥞', '🧇', '🥓', '🥩', '🍗', '🍖', '🌭', '🍔', '🍟', '🍕', '🫓', '🥪', '🥙', '🧆', '🌮', '🌯', '🫔', '🥗', '🥘', '🫕', '🥫', '🍝', '🍜', '🍲', '🍛', '🍣', '🍱', '🥟', '🦪', '🍤', '🍙', '🍚', '🍘', '🍥', '🥠', '🥮', '🍢', '🍡', '🍧', '🍨', '🍦', '🥧', '🧁', '🍰', '🎂', '🍮', '🍭', '🍬', '🍫', '🍿', '🍩', '🍪', '🌰', '🥜', '🍯'],
+            activities: ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🪃', '🥅', '⛳', '🪁', '🏹', '🎣', '🤿', '🥊', '🥋', '🎽', '🛹', '🛼', '🛷', '⛸️', '🥌', '🎿', '⛷️', '🏂', '🪂', '🏋️', '🤼', '🤸', '🤺', '⛹️', '🤾', '🏌️', '🏇', '🧘', '🏊', '🚣', '🧗', '🚵', '🚴', '🏆', '🥇', '🥈', '🥉', '🏅', '🎖️', '🎗️', '🎫', '🎟️', '🎪', '🎭', '🎨', '🎬', '🎤', '🎧', '🎼', '🎹', '🥁', '🎷', '🎺', '🎸', '🪕', '🎻', '🎲', '♟️', '🎯', '🎳', '🎮', '🎰', '🧩'],
+            objects: ['⌚', '📱', '💻', '⌨️', '🖥️', '🖨️', '🖱️', '🖲️', '🕹️', '🗜️', '💾', '💿', '📀', '📼', '📷', '📸', '📹', '🎥', '📽️', '🎞️', '📞', '☎️', '📟', '📠', '📺', '📻', '🎙️', '🎚️', '🎛️', '🧭', '⏱️', '⏲️', '⏰', '🕰️', '⌛', '⏳', '📡', '🔋', '🔌', '💡', '🔦', '🕯️', '🪔', '🧯', '🛢️', '💸', '💵', '💴', '💶', '💷', '🪙', '💰', '💳', '💎', '⚖️', '🪜', '🧰', '🪛', '🔧', '🔨', '⚒️', '🛠️', '⛏️', '🪚', '🔩', '⚙️', '🪤', '🧱', '⛓️', '🧲', '🔫', '💣', '🧨', '🪓', '🔪', '🗡️', '⚔️', '🛡️', '🚬', '⚰️', '🪦', '⚱️', '🏺', '🔮', '📿', '🧿', '💈', '⚗️', '🔭', '🔬', '🕳️', '🩹', '🩺', '💊', '💉', '🩸', '🧬', '🦠', '🧫', '🧪'],
+            symbols: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉️', '☸️', '✡️', '🔯', '🕎', '☯️', '☦️', '🛐', '⛎', '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓', '🆔', '⚛️', '🉑', '☢️', '☣️', '📴', '📳', '🈶', '🈚', '🈸', '🈺', '🈷️', '✴️', '🆚', '💮', '🉐', '㊙️', '㊗️', '🈴', '🈵', '🈹', '🈲', '🅰️', '🅱️', '🆎', '🆑', '🅾️', '🆘', '❌', '⭕', '🛑', '⛔', '📛', '🚫', '💯', '💢', '♨️', '🚷', '🚯', '🚳', '🚱', '🔞', '📵', '🚭', '❗', '❕', '❓', '❔', '‼️', '⁉️', '🔅', '🔆', '〽️', '⚠️', '🚸', '🔱', '⚜️', '🔰', '♻️', '✅', '🈯', '💹', '❇️', '✳️', '❎', '🌐', '💠', 'Ⓜ️', '🌀', '💤', '🏧', '🚾', '♿', '🅿️', '🈳', '🈂️', '🛂', '🛃', '🛄', '🛅', '🚹', '🚺', '🚼', '⚧️', '🚻', '🚮', '🎦', '📶', '🈁', '🔣', 'ℹ️', '🔤', '🔡', '🔠', '🆖', '🆗', '🆙', '🆒', '🆕', '🆓', '0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '🔢', '#️⃣', '*️⃣', '⏏️', '▶️', '⏸️', '⏯️', '⏹️', '⏺️', '⏭️', '⏮️', '⏩', '⏪', '⏫', '⏬', '◀️', '🔼', '🔽', '➡️', '⬅️', '⬆️', '⬇️', '↗️', '↘️', '↙️', '↖️', '↕️', '↔️', '↪️', '↩️', '⤴️', '⤵️', '🔀', '🔁', '🔂', '🔄', '🔃', '🎵', '🎶', '➕', '➖', '➗', '✖️', '♾️', '💲', '💱', '™️', '©️', '®️', '〰️', '➰', '➿', '🔚', '🔙', '🔛', '🔝', '🔜', '✔️', '☑️', '🔘', '🔴', '🟠', '🟡', '🟢', '🔵', '🟣', '⚫', '⚪', '🟤', '🔺', '🔻', '🔸', '🔹', '🔶', '🔷', '🔳', '🔲', '▪️', '▫️', '◾', '◽', '◼️', '◻️', '🟥', '🟧', '🟨', '🟩', '🟦', '🟪', '⬛', '⬜', '🟫', '🔈', '🔇', '🔉', '🔊', '🔔', '🔕', '📣', '📢', '👁️‍🗨️', '💬', '💭', '🗯️', '♠️', '♣️', '♥️', '♦️', '🃏', '🎴', '🀄']
+        };
+
         // Settings object
         const settings = {
             emoji: '🎨',
             size: 64,
-            bgColor: '#ff1493',
+            bgColor: 'transparent',
             padding: 10,
             borderRadius: 0,
             textOverlay: '',
@@ -333,7 +436,124 @@
         let drawColor = '#ffffff';
         let isDrawing = false;
         let zoom = 8;
-        let pixelEditorActive = false;
+        let pixelEditorActive = true; // Start with pixel editor visible
+        let currentCategory = 'smileys';
+
+        // Emoji picker functions
+        function showEmojiCategory(category) {
+            currentCategory = category;
+            const grid = document.getElementById('emojiGrid');
+            grid.innerHTML = '';
+
+            // Update active button
+            document.querySelectorAll('.emoji-category-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Populate grid
+            emojiCategories[category].forEach(emoji => {
+                const button = document.createElement('button');
+                button.className = 'emoji-option';
+                button.textContent = emoji;
+                button.onclick = () => selectEmoji(emoji);
+                grid.appendChild(button);
+            });
+        }
+
+        function selectEmoji(emoji) {
+            settings.emoji = emoji;
+            document.getElementById('emojiInput').value = emoji;
+            settings.pixelData = null;
+            render();
+        }
+
+        function toggleAdvancedOptions() {
+            const content = document.getElementById('advancedOptions');
+            content.classList.toggle('visible');
+            event.target.textContent = content.classList.contains('visible')
+                ? '⚙️ Hide Advanced Options'
+                : '⚙️ Advanced Options';
+        }
+
+        function toggleView() {
+            const pixelSection = document.getElementById('pixelEditorSection');
+            const previewSection = document.getElementById('previewSection');
+
+            if (pixelSection.classList.contains('active')) {
+                // Switch to preview
+                pixelSection.classList.remove('active');
+                pixelSection.style.display = 'none';
+                previewSection.style.display = 'block';
+
+                // Apply pixel canvas to preview if modified
+                applyPixelCanvasToSettings();
+                render();
+            } else {
+                // Switch to editor
+                previewSection.style.display = 'none';
+                pixelSection.style.display = 'block';
+                pixelSection.classList.add('active');
+            }
+        }
+
+        function loadEmojiToPixelCanvas() {
+            // Load current emoji/preview into pixel canvas
+            const size = settings.size;
+
+            // Create a temporary canvas at actual size
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = size;
+            tempCanvas.height = size;
+            const tempCtx = tempCanvas.getContext('2d');
+
+            // Clear with transparent
+            tempCtx.clearRect(0, 0, size, size);
+
+            // Draw emoji
+            tempCtx.font = `${size * 0.7}px Arial`;
+            tempCtx.textAlign = 'center';
+            tempCtx.textBaseline = 'middle';
+            tempCtx.fillText(settings.emoji, size / 2, size / 2);
+
+            // Now scale it up to the pixel canvas
+            initPixelCanvas();
+
+            // Draw each pixel
+            const imageData = tempCtx.getImageData(0, 0, size, size);
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    const i = (y * size + x) * 4;
+                    const r = imageData.data[i];
+                    const g = imageData.data[i + 1];
+                    const b = imageData.data[i + 2];
+                    const a = imageData.data[i + 3];
+
+                    if (a > 0) {
+                        pixelCtx.fillStyle = `rgba(${r},${g},${b},${a/255})`;
+                        pixelCtx.fillRect(x * zoom, y * zoom, zoom, zoom);
+                    }
+                }
+            }
+
+            // Draw grid
+            drawGrid();
+        }
+
+        function applyPixelCanvasToSettings() {
+            // Get the pixel canvas data at actual size
+            const size = settings.size;
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = size;
+            tempCanvas.height = size;
+            const tempCtx = tempCanvas.getContext('2d');
+
+            // Scale down from pixel canvas
+            tempCtx.drawImage(pixelCanvas, 0, 0, size * zoom, size * zoom, 0, 0, size, size);
+
+            // Store as pixel data
+            settings.pixelData = tempCanvas.toDataURL();
+        }
 
         // Initialize
         function init() {
@@ -358,8 +578,12 @@
             });
 
             document.getElementById('bgColorText').addEventListener('input', (e) => {
-                settings.bgColor = e.target.value;
-                document.getElementById('bgColor').value = e.target.value;
+                const value = e.target.value.toLowerCase();
+                settings.bgColor = value;
+                // Only update color picker if not transparent
+                if (value !== 'transparent' && value.match(/^#[0-9a-f]{6}$/i)) {
+                    document.getElementById('bgColor').value = value;
+                }
                 render();
             });
 
@@ -467,39 +691,53 @@
             // Initialize pixel canvas
             initPixelCanvas();
 
+            // Initialize emoji picker with first category
+            showEmojiCategory('smileys');
+
+            // Load emoji into pixel canvas on start
+            loadEmojiToPixelCanvas();
+
             // Render initial state
             render();
         }
 
         // Render the icon
         function render() {
-            const size = settings.size;
-            canvas.width = size;
-            canvas.height = size;
+            return new Promise((resolve) => {
+                const size = settings.size;
+                canvas.width = size;
+                canvas.height = size;
 
-            // If we have pixel data, use it
-            if (settings.pixelData) {
-                const img = new Image();
-                img.onload = () => {
-                    ctx.drawImage(img, 0, 0, size, size);
-                };
-                img.src = settings.pixelData;
-            } else {
+                // If we have pixel data, use it
+                if (settings.pixelData) {
+                    const img = new Image();
+                    img.onload = () => {
+                        ctx.drawImage(img, 0, 0, size, size);
+                        resolve();
+                    };
+                    img.onerror = () => {
+                        console.error('Failed to load pixel data');
+                        resolve();
+                    };
+                    img.src = settings.pixelData;
+                } else {
                 // Clear canvas
                 ctx.clearRect(0, 0, size, size);
                 ctx.save();
 
-                // Draw background with border radius
-                if (settings.borderRadius > 0) {
-                    const radius = (size * settings.borderRadius) / 100;
-                    ctx.beginPath();
-                    ctx.roundRect(0, 0, size, size, radius);
-                    ctx.fillStyle = settings.bgColor;
-                    ctx.fill();
-                    ctx.clip();
-                } else {
-                    ctx.fillStyle = settings.bgColor;
-                    ctx.fillRect(0, 0, size, size);
+                // Draw background with border radius (only if not transparent)
+                if (settings.bgColor !== 'transparent') {
+                    if (settings.borderRadius > 0) {
+                        const radius = (size * settings.borderRadius) / 100;
+                        ctx.beginPath();
+                        ctx.roundRect(0, 0, size, size, radius);
+                        ctx.fillStyle = settings.bgColor;
+                        ctx.fill();
+                        ctx.clip();
+                    } else {
+                        ctx.fillStyle = settings.bgColor;
+                        ctx.fillRect(0, 0, size, size);
+                    }
                 }
 
                 // Calculate padding
@@ -555,11 +793,15 @@
                     ctx.fillText(settings.textOverlay, size / 2, textY);
                 }
 
-                ctx.restore();
-            }
+                    ctx.restore();
+                }
 
-            // Update share URL
-            updateShareUrl();
+                // Update share URL
+                updateShareUrl();
+
+                // Resolve immediately for synchronous render
+                resolve();
+            });
         }
 
         // Pixel editor functions
@@ -568,82 +810,10 @@
             pixelCanvas.width = size * zoom;
             pixelCanvas.height = size * zoom;
 
-            // Clear the pixel canvas
+            // Clear the pixel canvas - CSS background will show checkerboard
             pixelCtx.clearRect(0, 0, pixelCanvas.width, pixelCanvas.height);
-
-            // Draw transparent background pattern
-            drawTransparentPattern();
         }
 
-        function drawTransparentPattern() {
-            const size = settings.size;
-            for (let y = 0; y < size; y++) {
-                for (let x = 0; x < size; x++) {
-                    if ((x + y) % 2 === 0) {
-                        pixelCtx.fillStyle = '#1a1a2e';
-                    } else {
-                        pixelCtx.fillStyle = '#16213e';
-                    }
-                    pixelCtx.fillRect(x * zoom, y * zoom, zoom, zoom);
-                }
-            }
-        }
-
-        function togglePixelEditor() {
-            pixelEditorActive = !pixelEditorActive;
-            const section = document.getElementById('pixelEditorSection');
-            const previewSection = document.querySelector('.preview-section');
-            const btn = document.querySelector('.mode-toggle button');
-
-            if (pixelEditorActive) {
-                section.classList.add('active');
-                previewSection.style.display = 'none';
-                btn.textContent = 'Back to Preview';
-
-                // Load current preview into pixel editor
-                loadPreviewToPixelCanvas();
-            } else {
-                section.classList.remove('active');
-                previewSection.style.display = 'block';
-                btn.textContent = 'Edit Pixels';
-            }
-        }
-
-        function loadPreviewToPixelCanvas() {
-            const size = settings.size;
-
-            // Create a temporary canvas at actual size
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = size;
-            tempCanvas.height = size;
-            const tempCtx = tempCanvas.getContext('2d');
-
-            // Draw the current preview
-            tempCtx.drawImage(canvas, 0, 0);
-
-            // Now scale it up to the pixel canvas
-            initPixelCanvas();
-
-            // Draw each pixel
-            const imageData = tempCtx.getImageData(0, 0, size, size);
-            for (let y = 0; y < size; y++) {
-                for (let x = 0; x < size; x++) {
-                    const i = (y * size + x) * 4;
-                    const r = imageData.data[i];
-                    const g = imageData.data[i + 1];
-                    const b = imageData.data[i + 2];
-                    const a = imageData.data[i + 3];
-
-                    if (a > 0) {
-                        pixelCtx.fillStyle = `rgba(${r},${g},${b},${a/255})`;
-                        pixelCtx.fillRect(x * zoom, y * zoom, zoom, zoom);
-                    }
-                }
-            }
-
-            // Draw grid
-            drawGrid();
-        }
 
         function drawGrid() {
             const size = settings.size;
@@ -702,17 +872,12 @@
             if (x < 0 || x >= size || y < 0 || y >= size) return;
 
             if (currentTool === 'erase') {
-                // Draw transparent pattern
-                if ((x + y) % 2 === 0) {
-                    pixelCtx.fillStyle = '#1a1a2e';
-                } else {
-                    pixelCtx.fillStyle = '#16213e';
-                }
+                // Clear the pixel to transparent (CSS background checkerboard will show through)
+                pixelCtx.clearRect(x * zoom, y * zoom, zoom, zoom);
             } else {
                 pixelCtx.fillStyle = drawColor;
+                pixelCtx.fillRect(x * zoom, y * zoom, zoom, zoom);
             }
-
-            pixelCtx.fillRect(x * zoom, y * zoom, zoom, zoom);
 
             // Redraw grid for this pixel
             pixelCtx.strokeStyle = 'rgba(255, 20, 147, 0.3)';
@@ -801,27 +966,6 @@
             initPixelCanvas();
         }
 
-        function applyToPreview() {
-            // Get the pixel canvas data at actual size
-            const size = settings.size;
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = size;
-            tempCanvas.height = size;
-            const tempCtx = tempCanvas.getContext('2d');
-
-            // Scale down from pixel canvas
-            tempCtx.drawImage(pixelCanvas, 0, 0, size * zoom, size * zoom, 0, 0, size, size);
-
-            // Store as pixel data
-            settings.pixelData = tempCanvas.toDataURL();
-
-            // Render preview
-            render();
-
-            // Go back to preview mode
-            togglePixelEditor();
-        }
-
         function changeZoom(direction) {
             const oldZoom = zoom;
             if (direction > 0) {
@@ -843,7 +987,7 @@
                 pixelCanvas.width = size * zoom;
                 pixelCanvas.height = size * zoom;
 
-                // Redraw from saved state
+                // Redraw from saved state (only non-transparent pixels)
                 const imageData = tempCtx.getImageData(0, 0, size, size);
                 for (let y = 0; y < size; y++) {
                     for (let x = 0; x < size; x++) {
@@ -853,17 +997,11 @@
                         const b = imageData.data[i + 2];
                         const a = imageData.data[i + 3];
 
-                        if (a === 0) {
-                            // Draw transparent pattern
-                            if ((x + y) % 2 === 0) {
-                                pixelCtx.fillStyle = '#1a1a2e';
-                            } else {
-                                pixelCtx.fillStyle = '#16213e';
-                            }
-                        } else {
+                        // Only draw non-transparent pixels (transparent areas show CSS background)
+                        if (a > 0) {
                             pixelCtx.fillStyle = `rgba(${r},${g},${b},${a/255})`;
+                            pixelCtx.fillRect(x * zoom, y * zoom, zoom, zoom);
                         }
-                        pixelCtx.fillRect(x * zoom, y * zoom, zoom, zoom);
                     }
                 }
 
@@ -873,36 +1011,27 @@
         }
 
         // Export icon at specific size
-        function exportIcon(targetSize) {
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = targetSize;
-            tempCanvas.height = targetSize;
-            const tempCtx = tempCanvas.getContext('2d');
-
+        async function exportIcon(targetSize) {
             // Save current size
             const originalSize = settings.size;
 
             // Temporarily change size for export
             settings.size = targetSize;
 
-            // Render to temp canvas
+            // Render to canvas and wait for completion
             canvas.width = targetSize;
             canvas.height = targetSize;
-            render();
+            await render();
 
-            // Download
-            tempCanvas.toBlob((blob) => {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = canvas.toDataURL();
-                a.download = `emoji-icon-${targetSize}x${targetSize}.png`;
-                a.click();
-                URL.revokeObjectURL(url);
+            // Export the canvas
+            const a = document.createElement('a');
+            a.href = canvas.toDataURL();
+            a.download = `emoji-icon-${targetSize}x${targetSize}.png`;
+            a.click();
 
-                // Restore original size
-                settings.size = originalSize;
-                render();
-            });
+            // Restore original size
+            settings.size = originalSize;
+            await render();
         }
 
         // URL hash handling
@@ -938,8 +1067,13 @@
         function updateUIFromSettings() {
             document.getElementById('emojiInput').value = settings.emoji;
             document.getElementById('canvasSize').value = settings.size;
-            document.getElementById('bgColor').value = settings.bgColor;
-            document.getElementById('bgColorText').value = settings.bgColor;
+            // Handle transparent background color
+            if (settings.bgColor === 'transparent') {
+                document.getElementById('bgColorText').value = 'transparent';
+            } else {
+                document.getElementById('bgColor').value = settings.bgColor;
+                document.getElementById('bgColorText').value = settings.bgColor;
+            }
             document.getElementById('padding').value = settings.padding;
             document.getElementById('paddingValue').textContent = settings.padding + '%';
             document.getElementById('borderRadius').value = settings.borderRadius;
