@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tools</title>
+    <link rel="stylesheet" href="static/common.css" />
+  </head>
+  <body>
+    <!-- Hero wireframe section -->
+    <div class="hero-wireframe">
+      <svg viewBox="0 0 800 400" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <linearGradient id="grid-fade" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color: #00d9ff; stop-opacity: 0" />
+            <stop offset="50%" style="stop-color: #00d9ff; stop-opacity: 0.3" />
+            <stop offset="100%" style="stop-color: #00d9ff; stop-opacity: 0" />
+          </linearGradient>
+        </defs>
+
+        <!-- Horizontal lines with perspective -->
+        <g stroke="url(#grid-fade)" stroke-width="1" fill="none">
+          <line x1="0" y1="200" x2="800" y2="200" />
+          <line x1="50" y1="220" x2="750" y2="220" />
+          <line x1="100" y1="240" x2="700" y2="240" />
+          <line x1="150" y1="260" x2="650" y2="260" />
+          <line x1="200" y1="280" x2="600" y2="280" />
+          <line x1="250" y1="300" x2="550" y2="300" />
+          <line x1="300" y1="320" x2="500" y2="320" />
+        </g>
+
+        <!-- Vertical lines -->
+        <g stroke="#ff1493" stroke-width="1" fill="none" opacity="0.2">
+          <line x1="200" y1="200" x2="250" y2="320" />
+          <line x1="300" y1="200" x2="325" y2="320" />
+          <line x1="400" y1="200" x2="400" y2="320" />
+          <line x1="500" y1="200" x2="475" y2="320" />
+          <line x1="600" y1="200" x2="550" y2="320" />
+        </g>
+      </svg>
+    </div>
+
+    <div class="container">
+      <h1>Tools</h1>
+      <p>A collection of simple browser-based tools</p>
+
+      <ul class="text-left">
+        $TOOL_LIST
+      </ul>
+
+      <p class="mt-3">
+        <a href="https://github.com/lepinkainen/tools" target="_blank"
+          >View source on GitHub</a
+        >
+      </p>
+    </div>
+
+    <!-- Load graphics utilities -->
+    <script src="static/graphics.js"></script>
+    <script>
+      // Initialize graphics on load
+      document.addEventListener("DOMContentLoaded", () => {
+        initGraphics({
+          circuits: true, // Add circuit corners to tool list items
+          scanLines: false, // Subtle scan lines (can be enabled)
+          dataStream: false, // Floating data particles (can be enabled)
+          promptIcons: false, // Chevron icons on headings
+        });
+      });
+    </script>
+  </body>
+</html>
