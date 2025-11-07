@@ -800,25 +800,8 @@
             pixelCanvas.width = size * zoom;
             pixelCanvas.height = size * zoom;
 
-            // Clear the pixel canvas
+            // Clear the pixel canvas - CSS background will show checkerboard
             pixelCtx.clearRect(0, 0, pixelCanvas.width, pixelCanvas.height);
-
-            // Draw transparent background pattern
-            drawTransparentPattern();
-        }
-
-        function drawTransparentPattern() {
-            const size = settings.size;
-            for (let y = 0; y < size; y++) {
-                for (let x = 0; x < size; x++) {
-                    if ((x + y) % 2 === 0) {
-                        pixelCtx.fillStyle = '#1a1a2e';
-                    } else {
-                        pixelCtx.fillStyle = '#16213e';
-                    }
-                    pixelCtx.fillRect(x * zoom, y * zoom, zoom, zoom);
-                }
-            }
         }
 
 
@@ -879,17 +862,12 @@
             if (x < 0 || x >= size || y < 0 || y >= size) return;
 
             if (currentTool === 'erase') {
-                // Draw transparent pattern
-                if ((x + y) % 2 === 0) {
-                    pixelCtx.fillStyle = '#1a1a2e';
-                } else {
-                    pixelCtx.fillStyle = '#16213e';
-                }
+                // Clear the pixel to transparent (CSS background checkerboard will show through)
+                pixelCtx.clearRect(x * zoom, y * zoom, zoom, zoom);
             } else {
                 pixelCtx.fillStyle = drawColor;
+                pixelCtx.fillRect(x * zoom, y * zoom, zoom, zoom);
             }
-
-            pixelCtx.fillRect(x * zoom, y * zoom, zoom, zoom);
 
             // Redraw grid for this pixel
             pixelCtx.strokeStyle = 'rgba(255, 20, 147, 0.3)';
@@ -999,7 +977,7 @@
                 pixelCanvas.width = size * zoom;
                 pixelCanvas.height = size * zoom;
 
-                // Redraw from saved state
+                // Redraw from saved state (only non-transparent pixels)
                 const imageData = tempCtx.getImageData(0, 0, size, size);
                 for (let y = 0; y < size; y++) {
                     for (let x = 0; x < size; x++) {
@@ -1009,17 +987,11 @@
                         const b = imageData.data[i + 2];
                         const a = imageData.data[i + 3];
 
-                        if (a === 0) {
-                            // Draw transparent pattern
-                            if ((x + y) % 2 === 0) {
-                                pixelCtx.fillStyle = '#1a1a2e';
-                            } else {
-                                pixelCtx.fillStyle = '#16213e';
-                            }
-                        } else {
+                        // Only draw non-transparent pixels (transparent areas show CSS background)
+                        if (a > 0) {
                             pixelCtx.fillStyle = `rgba(${r},${g},${b},${a/255})`;
+                            pixelCtx.fillRect(x * zoom, y * zoom, zoom, zoom);
                         }
-                        pixelCtx.fillRect(x * zoom, y * zoom, zoom, zoom);
                     }
                 }
 
