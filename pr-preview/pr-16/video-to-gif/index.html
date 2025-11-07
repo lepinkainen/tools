@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Video to GIF Converter</title>
+    <link rel="stylesheet" href="../static/common.css" />
+    <style>
+      /* Tool-specific styles */
+      #dropZone.dragover {
+        border-color: #00bfff;
+        box-shadow: 0 0 30px rgba(0, 191, 255, 0.3);
+        background: rgba(0, 191, 255, 0.05);
+      }
+
+      .video-container {
+        margin: 20px 0;
+        display: none;
+      }
+
+      video {
+        width: 100%;
+        max-width: 800px;
+        display: block;
+        margin: 0 auto;
+        border: 2px dashed var(--neon-magenta);
+        border-radius: 8px;
+      }
+
+      .controls-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin: 20px 0;
+      }
+
+      .control-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+
+      .control-group label {
+        font-size: 0.9em;
+        color: var(--neon-cyan);
+      }
+
+      .time-input-group {
+        display: flex;
+        gap: 5px;
+      }
+
+      .time-input-group input {
+        flex: 1;
+      }
+
+      .time-input-group button {
+        padding: 5px 10px;
+        font-size: 0.8em;
+      }
+
+      .preview-container {
+        margin: 20px 0;
+        display: none;
+      }
+
+      .preview-container img {
+        width: 100%;
+        max-width: 800px;
+        display: block;
+        margin: 0 auto;
+        border: 2px solid var(--neon-magenta);
+        border-radius: 8px;
+      }
+
+      .progress {
+        margin: 20px 0;
+        display: none;
+      }
+
+      .progress-bar {
+        width: 100%;
+        height: 30px;
+        background: rgba(0, 0, 0, 0.3);
+        border: 2px solid var(--neon-cyan);
+        border-radius: 5px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .progress-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--neon-magenta), var(--neon-cyan));
+        width: 0%;
+        transition: width 0.3s;
+      }
+
+      .progress-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 0.9em;
+        z-index: 1;
+        text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+      }
+
+      .button-group {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .info-text {
+        text-align: center;
+        color: var(--neon-cyan);
+        font-size: 0.9em;
+        margin: 10px 0;
+      }
+
+      #error {
+        display: none;
+        color: #ff4444;
+        border: 2px solid #ff4444;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 5px;
+        text-align: center;
+      }
+    </style>
+    <link rel="icon" href="../favicon.ico" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>
+        <svg
+          class="tool-icon"
+          viewBox="0 0 40 40"
+          style="width: 50px; height: 50px"
+        >
+          <g stroke="#00d9ff" stroke-width="2" fill="none">
+            <!-- Film strip frames -->
+            <rect x="3" y="8" width="10" height="8" />
+            <rect x="15" y="8" width="10" height="8" />
+            <rect x="27" y="8" width="10" height="8" />
+            <!-- Arrow indicating conversion -->
+            <path d="M 20 20 L 20 28" stroke="#ff1493" stroke-width="2" />
+            <path d="M 17 25 L 20 28 L 23 25" stroke="#ff1493" stroke-width="2" />
+            <!-- GIF text representation -->
+            <circle cx="20" cy="32" r="5" />
+          </g>
+        </svg>
+        Video to GIF Converter
+      </h1>
+      <p class="text-center">
+        Convert video files to animated GIFs. Select a section of your video and generate a high-quality GIF.
+      </p>
+
+      <div id="error"></div>
+
+      <div class="box" id="dropZone">
+        <h2>📹 Drop Video Here</h2>
+        <p>or click to select a video file</p>
+        <input
+          type="file"
+          id="fileInput"
+          accept="video/*"
+          style="display: none"
+        />
+      </div>
+
+      <div class="video-container" id="videoContainer">
+        <h3 class="text-center">Video Preview</h3>
+        <video id="videoPreview" controls aria-label="Video preview player"></video>
+
+        <div class="controls-grid">
+          <div class="control-group">
+            <label for="startTime">Start Time (seconds)</label>
+            <div class="time-input-group">
+              <input
+                type="number"
+                id="startTime"
+                min="0"
+                step="0.1"
+                value="0"
+                aria-label="GIF start time in seconds"
+              />
+              <button id="setStartBtn" class="secondary">Set Current</button>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label for="endTime">End Time (seconds)</label>
+            <div class="time-input-group">
+              <input
+                type="number"
+                id="endTime"
+                min="0"
+                step="0.1"
+                value="0"
+                aria-label="GIF end time in seconds"
+              />
+              <button id="setEndBtn" class="secondary">Set Current</button>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label for="fps">Frame Rate (FPS)</label>
+            <input
+              type="number"
+              id="fps"
+              min="1"
+              max="30"
+              value="10"
+              aria-label="Frame rate in frames per second, 1 to 30"
+            />
+          </div>
+
+          <div class="control-group">
+            <label for="width">Width (pixels, -1 for original)</label>
+            <input
+              type="number"
+              id="width"
+              min="-1"
+              step="1"
+              value="480"
+              aria-label="Output width in pixels, -1 for original video width"
+            />
+          </div>
+        </div>
+
+        <p class="info-text" id="durationInfo"></p>
+
+        <div class="button-group">
+          <button id="generateBtn">🎬 Generate GIF</button>
+          <button id="clearBtn" class="secondary">Clear</button>
+        </div>
+      </div>
+
+      <div class="progress" id="progress">
+        <div class="progress-bar">
+          <div class="progress-bar-fill" id="progressFill"></div>
+          <div class="progress-text" id="progressText">0%</div>
+        </div>
+      </div>
+
+      <div class="preview-container output" id="previewContainer">
+        <h3 class="text-center">GIF Preview</h3>
+        <img id="gifPreview" alt="Generated animated GIF from video segment" />
+        <p class="info-text" id="gifInfo"></p>
+        <div class="button-group">
+          <button id="downloadBtn">💾 Download GIF</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { GIFEncoder, quantize, applyPalette } from 'https://cdn.jsdelivr.net/npm/gifenc@1.0.3/+esm';
+      window.gifenc = { GIFEncoder, quantize, applyPalette };
+    </script>
+    <script>
+      const dropZone = document.getElementById("dropZone");
+      const fileInput = document.getElementById("fileInput");
+      const videoContainer = document.getElementById("videoContainer");
+      const videoPreview = document.getElementById("videoPreview");
+      const startTimeInput = document.getElementById("startTime");
+      const endTimeInput = document.getElementById("endTime");
+      const fpsInput = document.getElementById("fps");
+      const widthInput = document.getElementById("width");
+      const generateBtn = document.getElementById("generateBtn");
+      const clearBtn = document.getElementById("clearBtn");
+      const setStartBtn = document.getElementById("setStartBtn");
+      const setEndBtn = document.getElementById("setEndBtn");
+      const durationInfo = document.getElementById("durationInfo");
+      const progress = document.getElementById("progress");
+      const progressFill = document.getElementById("progressFill");
+      const progressText = document.getElementById("progressText");
+      const previewContainer = document.getElementById("previewContainer");
+      const gifPreview = document.getElementById("gifPreview");
+      const gifInfo = document.getElementById("gifInfo");
+      const downloadBtn = document.getElementById("downloadBtn");
+      const errorDiv = document.getElementById("error");
+
+      let currentVideoFile = null;
+      let generatedGifBlob = null;
+
+      // Drag and drop handlers
+      dropZone.addEventListener("click", () => fileInput.click());
+
+      dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.classList.add("dragover");
+      });
+
+      dropZone.addEventListener("dragleave", () => {
+        dropZone.classList.remove("dragover");
+      });
+
+      dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropZone.classList.remove("dragover");
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith("video/")) {
+          handleVideoFile(file);
+        } else {
+          showError("Please drop a valid video file");
+        }
+      });
+
+      fileInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          handleVideoFile(file);
+        }
+      });
+
+      // Handle video file
+      function handleVideoFile(file) {
+        hideError();
+        currentVideoFile = file;
+
+        const url = URL.createObjectURL(file);
+        videoPreview.src = url;
+
+        videoPreview.onloadedmetadata = () => {
+          const duration = videoPreview.duration;
+          endTimeInput.value = duration.toFixed(2);
+          endTimeInput.max = duration;
+          startTimeInput.max = duration;
+          updateDurationInfo();
+          videoContainer.style.display = "block";
+          previewContainer.style.display = "none";
+        };
+      }
+
+      // Set current time as start/end
+      setStartBtn.addEventListener("click", () => {
+        startTimeInput.value = videoPreview.currentTime.toFixed(2);
+        updateDurationInfo();
+      });
+
+      setEndBtn.addEventListener("click", () => {
+        endTimeInput.value = videoPreview.currentTime.toFixed(2);
+        updateDurationInfo();
+      });
+
+      // Update duration info
+      function updateDurationInfo() {
+        const start = parseFloat(startTimeInput.value) || 0;
+        const end = parseFloat(endTimeInput.value) || 0;
+        const duration = Math.max(0, end - start);
+        durationInfo.textContent = `GIF Duration: ${duration.toFixed(2)} seconds`;
+      }
+
+      startTimeInput.addEventListener("input", updateDurationInfo);
+      endTimeInput.addEventListener("input", updateDurationInfo);
+
+      // Generate GIF
+      generateBtn.addEventListener("click", async () => {
+        if (!currentVideoFile) return;
+
+        const start = parseFloat(startTimeInput.value) || 0;
+        const end = parseFloat(endTimeInput.value) || 0;
+        const fps = parseInt(fpsInput.value) || 10;
+        const width = parseInt(widthInput.value) || -1;
+
+        if (start >= end) {
+          showError("End time must be greater than start time");
+          return;
+        }
+
+        if (end - start > 30) {
+          showError("GIF duration cannot exceed 30 seconds (for performance reasons)");
+          return;
+        }
+
+        hideError();
+        generateBtn.disabled = true;
+
+        try {
+          showProgress("Preparing...", 0);
+
+          const duration = end - start;
+          const frameDelayMs = Math.round(100 / fps); // gifenc uses centiseconds (1/100 sec)
+          const totalFrames = Math.ceil(duration * fps);
+
+          // Create a canvas for capturing frames
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+          // Set canvas size based on width parameter
+          const video = videoPreview;
+          const videoWidth = video.videoWidth;
+          const videoHeight = video.videoHeight;
+
+          if (width > 0) {
+            canvas.width = width;
+            canvas.height = Math.round((videoHeight / videoWidth) * width);
+          } else {
+            canvas.width = videoWidth;
+            canvas.height = videoHeight;
+          }
+
+          // Initialize GIF encoder using gifenc
+          const { GIFEncoder, quantize, applyPalette } = gifenc;
+          const gif = GIFEncoder();
+
+          // Capture frames
+          video.pause();
+          let frameCount = 0;
+
+          for (let i = 0; i < totalFrames; i++) {
+            const currentTime = start + (i / fps);
+            video.currentTime = currentTime;
+
+            await new Promise((resolve) => {
+              video.onseeked = () => {
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                // Get image data from canvas
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+                // Quantize colors and create palette
+                const palette = quantize(imageData.data, 256);
+                const index = applyPalette(imageData.data, palette);
+
+                // Add frame to GIF
+                gif.writeFrame(index, canvas.width, canvas.height, {
+                  palette,
+                  delay: frameDelayMs
+                });
+
+                frameCount++;
+                showProgress(`Processing frames... ${frameCount}/${totalFrames}`, Math.round((frameCount / totalFrames) * 100));
+                resolve();
+              };
+            });
+          }
+
+          // Finish encoding
+          gif.finish();
+
+          // Create blob from GIF data
+          const buffer = gif.bytes();
+          generatedGifBlob = new Blob([buffer], { type: "image/gif" });
+
+          // Display preview
+          const gifUrl = URL.createObjectURL(generatedGifBlob);
+          gifPreview.src = gifUrl;
+
+          const sizeKB = (generatedGifBlob.size / 1024).toFixed(2);
+          gifInfo.textContent = `Size: ${sizeKB} KB | Duration: ${duration.toFixed(2)}s | FPS: ${fps}`;
+
+          previewContainer.style.display = "block";
+          hideProgress();
+          generateBtn.disabled = false;
+
+        } catch (error) {
+          showError("Failed to generate GIF: " + error.message);
+          console.error(error);
+          generateBtn.disabled = false;
+          hideProgress();
+        }
+      });
+
+      // Download GIF
+      downloadBtn.addEventListener("click", () => {
+        if (!generatedGifBlob) return;
+
+        const url = URL.createObjectURL(generatedGifBlob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "converted.gif";
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+
+      // Clear button
+      clearBtn.addEventListener("click", () => {
+        currentVideoFile = null;
+        generatedGifBlob = null;
+        videoPreview.src = "";
+        gifPreview.src = "";
+        fileInput.value = "";
+        videoContainer.style.display = "none";
+        previewContainer.style.display = "none";
+        hideError();
+        hideProgress();
+      });
+
+      // Utility functions
+      function getFileExtension(filename) {
+        const ext = filename.substring(filename.lastIndexOf("."));
+        return ext || ".mp4";
+      }
+
+      function showProgress(message, percent) {
+        progress.style.display = "block";
+        progressFill.style.width = percent + "%";
+        progressText.textContent = message;
+      }
+
+      function hideProgress() {
+        progress.style.display = "none";
+      }
+
+      function showError(message) {
+        errorDiv.textContent = message;
+        errorDiv.style.display = "block";
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      function hideError() {
+        errorDiv.style.display = "none";
+      }
+    </script>
+
+    <!-- Load graphics utilities -->
+    <script src="../static/graphics.js"></script>
+    <script>
+      // Initialize graphics on load
+      document.addEventListener("DOMContentLoaded", () => {
+        initGraphics({
+          circuits: true, // Add circuit corners to boxes
+          scanLines: false, // Subtle scan lines
+          dataStream: false, // Floating data particles
+          promptIcons: false, // Chevron icons on headings
+        });
+      });
+    </script>
+  </body>
+</html>
