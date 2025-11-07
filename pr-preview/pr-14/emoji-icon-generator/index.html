@@ -704,18 +704,24 @@
 
         // Render the icon
         function render() {
-            const size = settings.size;
-            canvas.width = size;
-            canvas.height = size;
+            return new Promise((resolve) => {
+                const size = settings.size;
+                canvas.width = size;
+                canvas.height = size;
 
-            // If we have pixel data, use it
-            if (settings.pixelData) {
-                const img = new Image();
-                img.onload = () => {
-                    ctx.drawImage(img, 0, 0, size, size);
-                };
-                img.src = settings.pixelData;
-            } else {
+                // If we have pixel data, use it
+                if (settings.pixelData) {
+                    const img = new Image();
+                    img.onload = () => {
+                        ctx.drawImage(img, 0, 0, size, size);
+                        resolve();
+                    };
+                    img.onerror = () => {
+                        console.error('Failed to load pixel data');
+                        resolve();
+                    };
+                    img.src = settings.pixelData;
+                } else {
                 // Clear canvas
                 ctx.clearRect(0, 0, size, size);
                 ctx.save();
@@ -788,11 +794,15 @@
                     ctx.fillText(settings.textOverlay, size / 2, textY);
                 }
 
-                ctx.restore();
-            }
+                    ctx.restore();
+                }
 
-            // Update share URL
-            updateShareUrl();
+                // Update share URL
+                updateShareUrl();
+
+                // Resolve immediately for synchronous render
+                resolve();
+            });
         }
 
         // Pixel editor functions
@@ -1002,36 +1012,27 @@
         }
 
         // Export icon at specific size
-        function exportIcon(targetSize) {
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = targetSize;
-            tempCanvas.height = targetSize;
-            const tempCtx = tempCanvas.getContext('2d');
-
+        async function exportIcon(targetSize) {
             // Save current size
             const originalSize = settings.size;
 
             // Temporarily change size for export
             settings.size = targetSize;
 
-            // Render to temp canvas
+            // Render to canvas and wait for completion
             canvas.width = targetSize;
             canvas.height = targetSize;
-            render();
+            await render();
 
-            // Download
-            tempCanvas.toBlob((blob) => {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = canvas.toDataURL();
-                a.download = `emoji-icon-${targetSize}x${targetSize}.png`;
-                a.click();
-                URL.revokeObjectURL(url);
+            // Export the canvas
+            const a = document.createElement('a');
+            a.href = canvas.toDataURL();
+            a.download = `emoji-icon-${targetSize}x${targetSize}.png`;
+            a.click();
 
-                // Restore original size
-                settings.size = originalSize;
-                render();
-            });
+            // Restore original size
+            settings.size = originalSize;
+            await render();
         }
 
         // URL hash handling
