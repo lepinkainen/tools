@@ -32,29 +32,23 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Try to clone gh-pages branch, or create it if it doesn't exist
-          if git clone --branch gh-pages https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git gh-pages 2>/dev/null; then
-            echo "gh-pages branch exists, cloned successfully"
-          else
-            echo "gh-pages branch does not exist, creating it..."
-            mkdir gh-pages
-            cd gh-pages
+          # Try to clone the gh-pages branch. If it doesn't exist, create it.
+          if ! git clone --branch gh-pages --single-branch https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git gh-pages-temp; then
+            echo "gh-pages branch does not exist. Creating it..."
+            mkdir gh-pages-temp
+            cd gh-pages-temp
             git init
             git remote add origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git
             git checkout -b gh-pages
-            # Create initial commit
-            echo "# PR Preview Deployments" > README.md
+            echo "# PR Previews" > README.md
             git add README.md
-            git commit -m "Initialize gh-pages branch for PR previews"
+            git commit -m "Initialize gh-pages branch"
             git push -u origin gh-pages
             cd ..
-            rm -rf gh-pages
-            # Now clone it normally
-            git clone --branch gh-pages https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git gh-pages
           fi
 
           # Create/update PR preview directory
-          PR_DIR="gh-pages/pr-preview/pr-${{ github.event.pull_request.number }}"
+          PR_DIR="gh-pages-temp/pr-preview/pr-${{ github.event.pull_request.number }}"
           mkdir -p "$PR_DIR"
 
           # Copy built files to PR preview directory
@@ -62,10 +56,14 @@ jobs:
           cp -r dist/* "$PR_DIR/"
 
           # Commit and push
-          cd gh-pages
+          cd gh-pages-temp
           git add .
-          git commit -m "Deploy preview for PR #${{ github.event.pull_request.number }}" || echo "No changes to commit"
-          git push origin gh-pages
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Deploy preview for PR #${{ github.event.pull_request.number }}"
+            git push origin gh-pages
+          fi
 
       - name: Comment on PR
         uses: actions/github-script@v7
