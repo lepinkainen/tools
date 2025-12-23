@@ -79,6 +79,13 @@ def build_site():
                 shutil.copy2(fav_src, dist_dir / fav_name)
                 print(f"✓ Copied {fav_name} to dist/")
 
+    # Copy quiz-tool directory if it exists
+    quiz_tool_src = Path("quiz-tool")
+    if quiz_tool_src.exists():
+        quiz_tool_dst = dist_dir / "quiz-tool"
+        shutil.copytree(quiz_tool_src, quiz_tool_dst)
+        print("✓ Copied quiz-tool/ directory")
+
     # Process each tool
     tools = get_tool_files()
     tool_info = []
@@ -122,6 +129,14 @@ def build_site():
         tool_info.append({"name": tool_name, "title": title, "path": f"{tool_name}/"})
 
         print(f"✓ Built {tool_name} ({title})")
+
+    # Add quiz-tool to the tool list if it exists
+    if (dist_dir / "quiz-tool").exists():
+        tool_info.append({
+            "name": "quiz-tool",
+            "title": "Jouluinen Tietokilpailu",
+            "path": "quiz-tool/"
+        })
 
     # Generate index page
     generate_index(dist_dir, tool_info)
