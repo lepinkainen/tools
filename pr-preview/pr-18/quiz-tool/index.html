@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jouluinen Tietokilpailu</title>
+  <link rel="stylesheet" href="../static/common.css" />
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+  <style>
+    /* Christmas theme overrides */
+    body {
+      background: linear-gradient(
+        135deg,
+        #0a1a0a 0%,
+        #1a2e1a 25%,
+        #2d1b1b 50%,
+        #1a0a0a 75%,
+        #0f0f05 100%
+      );
+    }
+
+    h1 {
+      color: #ff4444;
+      text-shadow: 0 0 10px #ff4444, 0 0 20px #ff0000;
+    }
+
+    .quiz-container {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .category-badge {
+      display: inline-block;
+      padding: 5px 15px;
+      background: linear-gradient(135deg, #228b22, #006400);
+      color: #ffffff;
+      border-radius: 20px;
+      font-size: 0.9em;
+      margin-bottom: 15px;
+      box-shadow: 0 0 10px rgba(34, 139, 34, 0.5);
+    }
+
+    .question-box {
+      border: 3px solid #ff4444;
+      padding: 30px;
+      margin: 20px auto;
+      border-radius: 15px;
+      background: rgba(255, 68, 68, 0.08);
+      box-shadow: 0 0 30px rgba(255, 68, 68, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .question-box::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 70%);
+      animation: shimmer 3s infinite;
+    }
+
+    @keyframes shimmer {
+      0%, 100% { transform: rotate(0deg); }
+      50% { transform: rotate(180deg); }
+    }
+
+    .question-text {
+      font-size: 1.4em;
+      color: #ffffff;
+      margin-bottom: 10px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .question-english {
+      font-size: 1em;
+      color: #88cc88;
+      font-style: italic;
+      margin-bottom: 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 20px;
+      background: rgba(255, 68, 68, 0.2);
+      border-radius: 10px;
+      margin: 20px 0;
+      overflow: hidden;
+      border: 1px solid #ff4444;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ff4444, #228b22);
+      border-radius: 10px;
+      transition: width 0.5s ease;
+      box-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+    }
+
+    .progress-text {
+      color: #ffffff;
+      font-size: 0.9em;
+      margin-bottom: 5px;
+    }
+
+    .answer-input {
+      width: 100%;
+      max-width: 400px;
+      padding: 15px;
+      font-size: 1.2em;
+      background: rgba(34, 139, 34, 0.1);
+      border: 2px solid #228b22;
+      border-radius: 10px;
+      color: #ffffff;
+      text-align: center;
+      margin: 10px 0;
+    }
+
+    .answer-input:focus {
+      outline: none;
+      border-color: #32cd32;
+      box-shadow: 0 0 20px rgba(50, 205, 50, 0.4);
+    }
+
+    .options-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 20px 0;
+    }
+
+    .option-btn {
+      padding: 15px 25px;
+      background: rgba(34, 139, 34, 0.1);
+      border: 2px solid #228b22;
+      border-radius: 10px;
+      color: #ffffff;
+      font-size: 1.1em;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: left;
+    }
+
+    .option-btn:hover {
+      background: rgba(34, 139, 34, 0.3);
+      border-color: #32cd32;
+      box-shadow: 0 0 15px rgba(50, 205, 50, 0.4);
+      transform: translateX(10px);
+    }
+
+    .option-btn.selected {
+      background: rgba(50, 205, 50, 0.3);
+      border-color: #32cd32;
+    }
+
+    .option-btn.correct {
+      background: rgba(50, 205, 50, 0.5);
+      border-color: #00ff00;
+      box-shadow: 0 0 20px rgba(0, 255, 0, 0.6);
+    }
+
+    .option-btn.incorrect {
+      background: rgba(255, 68, 68, 0.5);
+      border-color: #ff0000;
+      box-shadow: 0 0 20px rgba(255, 0, 0, 0.6);
+    }
+
+    .submit-btn {
+      padding: 15px 40px;
+      background: linear-gradient(135deg, #228b22, #006400);
+      border: none;
+      border-radius: 10px;
+      color: #ffffff;
+      font-size: 1.2em;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 20px rgba(34, 139, 34, 0.4);
+    }
+
+    .submit-btn:hover {
+      background: linear-gradient(135deg, #32cd32, #228b22);
+      box-shadow: 0 0 30px rgba(50, 205, 50, 0.6);
+      transform: scale(1.05);
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .hint-btn {
+      background: transparent;
+      border: 1px solid #ffd700;
+      color: #ffd700;
+      padding: 8px 20px;
+      font-size: 0.9em;
+      margin-top: 10px;
+    }
+
+    .hint-btn:hover {
+      background: rgba(255, 215, 0, 0.2);
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+    }
+
+    .hint-text {
+      color: #ffd700;
+      font-style: italic;
+      margin-top: 10px;
+      padding: 10px;
+      background: rgba(255, 215, 0, 0.1);
+      border-radius: 5px;
+      display: none;
+    }
+
+    .hint-text.visible {
+      display: block;
+    }
+
+    .feedback {
+      padding: 20px;
+      border-radius: 10px;
+      margin: 20px 0;
+      font-size: 1.3em;
+      display: none;
+    }
+
+    .feedback.correct {
+      background: rgba(50, 205, 50, 0.2);
+      border: 2px solid #32cd32;
+      color: #32cd32;
+      display: block;
+    }
+
+    .feedback.incorrect {
+      background: rgba(255, 68, 68, 0.2);
+      border: 2px solid #ff4444;
+      color: #ff4444;
+      display: block;
+    }
+
+    .correct-answer-reveal {
+      color: #ffd700;
+      margin-top: 10px;
+    }
+
+    .score-display {
+      font-size: 1.5em;
+      color: #ffd700;
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+      margin: 20px 0;
+    }
+
+    .next-btn {
+      background: linear-gradient(135deg, #ff4444, #cc0000);
+      margin-top: 15px;
+    }
+
+    .next-btn:hover {
+      background: linear-gradient(135deg, #ff6666, #ff4444);
+    }
+
+    .start-screen, .end-screen {
+      text-align: center;
+      padding: 40px;
+    }
+
+    .christmas-emoji {
+      font-size: 3em;
+      margin: 20px 0;
+    }
+
+    .final-score {
+      font-size: 2.5em;
+      color: #ffd700;
+      text-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+      margin: 30px 0;
+    }
+
+    .restart-btn {
+      background: linear-gradient(135deg, #ff4444, #228b22);
+      font-size: 1.3em;
+      padding: 20px 50px;
+    }
+
+    .snowflake {
+      position: fixed;
+      top: -10px;
+      color: #ffffff;
+      font-size: 1.5em;
+      opacity: 0.8;
+      pointer-events: none;
+      animation: fall linear infinite;
+      z-index: 1000;
+    }
+
+    @keyframes fall {
+      to {
+        transform: translateY(100vh) rotate(360deg);
+      }
+    }
+
+    .decorations {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      font-size: 2em;
+      z-index: 100;
+    }
+
+    .decorations-right {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      font-size: 2em;
+      z-index: 100;
+    }
+
+    @media (max-width: 600px) {
+      .question-text {
+        font-size: 1.2em;
+      }
+
+      .option-btn {
+        padding: 12px 15px;
+        font-size: 1em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="decorations">🎄</div>
+  <div class="decorations-right">🎅</div>
+
+  <div class="quiz-container">
+    <h1>Jouluinen Tietokilpailu</h1>
+
+    <!-- Start Screen -->
+    <div id="startScreen" class="start-screen">
+      <div class="christmas-emoji">🎄🎁🦌</div>
+      <h2 style="color: #228b22;">Tervetuloa jouluvisaan!</h2>
+      <p style="color: #ffffff; font-size: 1.2em;">
+        Testaa tietosi matematiikasta, biologiasta, ruotsista, englannista, maantiedosta ja kotitaloudesta!
+      </p>
+      <p style="color: #88cc88;">
+        30 kysymystä odottaa sinua. Onnea matkaan!
+      </p>
+      <button class="submit-btn" onclick="startQuiz()" style="margin-top: 30px;">
+        Aloita visa!
+      </button>
+    </div>
+
+    <!-- Quiz Screen -->
+    <div id="quizScreen" style="display: none;">
+      <div class="progress-text">
+        Kysymys <span id="currentNum">1</span> / <span id="totalNum">30</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+      </div>
+
+      <div class="score-display">
+        Pisteet: <span id="scoreDisplay">0</span>
+      </div>
+
+      <div class="question-box">
+        <div class="category-badge" id="categoryBadge">Matematiikka</div>
+        <div class="question-text" id="questionText"></div>
+        <div class="question-english" id="questionEnglish"></div>
+
+        <!-- Text Input -->
+        <div id="textInputArea" style="display: none;">
+          <input
+            type="text"
+            class="answer-input"
+            id="answerInput"
+            placeholder="Kirjoita vastauksesi..."
+            autocomplete="off"
+          />
+        </div>
+
+        <!-- Multiple Choice -->
+        <div id="multipleChoiceArea" class="options-container" style="display: none;">
+        </div>
+
+        <button class="hint-btn" id="hintBtn" onclick="showHint()">
+          Näytä vihje
+        </button>
+        <div class="hint-text" id="hintText"></div>
+
+        <div class="feedback" id="feedback"></div>
+
+        <div id="submitArea">
+          <button class="submit-btn" id="submitBtn" onclick="checkAnswer()">
+            Vastaa
+          </button>
+        </div>
+
+        <div id="nextArea" style="display: none;">
+          <button class="submit-btn next-btn" onclick="nextQuestion()">
+            Seuraava kysymys
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- End Screen -->
+    <div id="endScreen" class="end-screen" style="display: none;">
+      <div class="christmas-emoji">🎉🎄🎁</div>
+      <h2 style="color: #228b22;">Visa päättyi!</h2>
+      <div class="final-score">
+        Sait <span id="finalScore">0</span> / <span id="finalTotal">30</span> pistettä!
+      </div>
+      <p id="endMessage" style="color: #ffffff; font-size: 1.3em;"></p>
+      <div class="christmas-emoji" id="endEmoji">🌟</div>
+      <button class="submit-btn restart-btn" onclick="restartQuiz()">
+        Pelaa uudelleen!
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // Quiz state
+    let questions = [];
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let answered = false;
+    let selectedOptionIndex = null;
+
+    // Create falling snowflakes
+    function createSnowflakes() {
+      const snowflakes = ['❄', '❅', '❆', '✻', '✼'];
+      setInterval(() => {
+        const snowflake = document.createElement('div');
+        snowflake.className = 'snowflake';
+        snowflake.textContent = snowflakes[Math.floor(Math.random() * snowflakes.length)];
+        snowflake.style.left = Math.random() * 100 + 'vw';
+        snowflake.style.animationDuration = (Math.random() * 3 + 4) + 's';
+        snowflake.style.fontSize = (Math.random() * 1 + 0.8) + 'em';
+        document.body.appendChild(snowflake);
+
+        setTimeout(() => snowflake.remove(), 7000);
+      }, 500);
+    }
+
+    // Levenshtein distance for fuzzy matching
+    function levenshteinDistance(str1, str2) {
+      const m = str1.length;
+      const n = str2.length;
+      const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+
+      for (let i = 0; i <= m; i++) dp[i][0] = i;
+      for (let j = 0; j <= n; j++) dp[0][j] = j;
+
+      for (let i = 1; i <= m; i++) {
+        for (let j = 1; j <= n; j++) {
+          if (str1[i - 1] === str2[j - 1]) {
+            dp[i][j] = dp[i - 1][j - 1];
+          } else {
+            dp[i][j] = 1 + Math.min(
+              dp[i - 1][j],
+              dp[i][j - 1],
+              dp[i - 1][j - 1]
+            );
+          }
+        }
+      }
+      return dp[m][n];
+    }
+
+    // Calculate similarity percentage
+    function similarity(str1, str2) {
+      const maxLen = Math.max(str1.length, str2.length);
+      if (maxLen === 0) return 1;
+      const distance = levenshteinDistance(str1, str2);
+      return (maxLen - distance) / maxLen;
+    }
+
+    // Normalize string for comparison
+    function normalize(str) {
+      return str.toLowerCase()
+        .trim()
+        .replace(/\s+/g, ' ')
+        .replace(/[.,!?]/g, '')
+        .replace(/ä/g, 'a')
+        .replace(/ö/g, 'o')
+        .replace(/å/g, 'a');
+    }
+
+    // Check if answer is correct with fuzzy matching
+    function isAnswerCorrect(userAnswer, correctAnswers) {
+      const normalizedUser = normalize(userAnswer);
+
+      for (const correct of correctAnswers) {
+        const normalizedCorrect = normalize(correct);
+
+        // Exact match
+        if (normalizedUser === normalizedCorrect) return true;
+
+        // Fuzzy match with 80% threshold
+        if (similarity(normalizedUser, normalizedCorrect) >= 0.8) return true;
+
+        // Check if user answer contains the correct answer
+        if (normalizedUser.includes(normalizedCorrect)) return true;
+        if (normalizedCorrect.includes(normalizedUser) && normalizedUser.length >= 3) return true;
+      }
+
+      return false;
+    }
+
+    // Celebration effects
+    function celebrate() {
+      // Confetti burst
+      const count = 200;
+      const defaults = {
+        origin: { y: 0.7 },
+        colors: ['#ff4444', '#228b22', '#ffd700', '#ffffff']
+      };
+
+      function fire(particleRatio, opts) {
+        confetti({
+          ...defaults,
+          ...opts,
+          particleCount: Math.floor(count * particleRatio)
+        });
+      }
+
+      fire(0.25, { spread: 26, startVelocity: 55 });
+      fire(0.2, { spread: 60 });
+      fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+      fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+      fire(0.1, { spread: 120, startVelocity: 45 });
+
+      // Extra Christmas confetti
+      setTimeout(() => {
+        confetti({
+          particleCount: 50,
+          spread: 100,
+          origin: { y: 0.6 },
+          shapes: ['circle'],
+          colors: ['#ff0000', '#00ff00', '#ffffff']
+        });
+      }, 300);
+    }
+
+    // Load questions
+    async function loadQuestions() {
+      try {
+        const response = await fetch('questions.json');
+        const data = await response.json();
+        questions = shuffleArray(data.questions);
+        document.getElementById('totalNum').textContent = questions.length;
+        document.getElementById('finalTotal').textContent = questions.length;
+      } catch (error) {
+        console.error('Error loading questions:', error);
+        alert('Virhe ladattaessa kysymyksiä!');
+      }
+    }
+
+    // Shuffle array
+    function shuffleArray(array) {
+      const shuffled = [...array];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    }
+
+    // Start quiz
+    function startQuiz() {
+      document.getElementById('startScreen').style.display = 'none';
+      document.getElementById('quizScreen').style.display = 'block';
+      displayQuestion();
+    }
+
+    // Display current question
+    function displayQuestion() {
+      const question = questions[currentQuestionIndex];
+      answered = false;
+      selectedOptionIndex = null;
+
+      // Update progress
+      document.getElementById('currentNum').textContent = currentQuestionIndex + 1;
+      const progress = ((currentQuestionIndex) / questions.length) * 100;
+      document.getElementById('progressFill').style.width = progress + '%';
+
+      // Update category
+      const categoryBadge = document.getElementById('categoryBadge');
+      categoryBadge.textContent = question.categoryName;
+
+      // Update question text
+      document.getElementById('questionText').textContent = question.question;
+      document.getElementById('questionEnglish').textContent = question.questionEn;
+
+      // Reset hint
+      document.getElementById('hintText').textContent = question.hint;
+      document.getElementById('hintText').classList.remove('visible');
+      document.getElementById('hintBtn').style.display = 'inline-block';
+
+      // Reset feedback
+      document.getElementById('feedback').className = 'feedback';
+      document.getElementById('feedback').innerHTML = '';
+
+      // Show appropriate input type
+      const textArea = document.getElementById('textInputArea');
+      const mcArea = document.getElementById('multipleChoiceArea');
+      const answerInput = document.getElementById('answerInput');
+
+      if (question.type === 'text') {
+        textArea.style.display = 'block';
+        mcArea.style.display = 'none';
+        answerInput.value = '';
+        answerInput.focus();
+      } else {
+        textArea.style.display = 'none';
+        mcArea.style.display = 'flex';
+
+        // Create options
+        mcArea.innerHTML = '';
+        question.options.forEach((option, index) => {
+          const btn = document.createElement('button');
+          btn.className = 'option-btn';
+          btn.textContent = `${String.fromCharCode(65 + index)}) ${option}`;
+          btn.onclick = () => selectOption(index);
+          mcArea.appendChild(btn);
+        });
+      }
+
+      // Show submit, hide next
+      document.getElementById('submitArea').style.display = 'block';
+      document.getElementById('nextArea').style.display = 'none';
+      document.getElementById('submitBtn').disabled = false;
+    }
+
+    // Select option for multiple choice
+    function selectOption(index) {
+      if (answered) return;
+
+      selectedOptionIndex = index;
+      const buttons = document.querySelectorAll('.option-btn');
+      buttons.forEach((btn, i) => {
+        btn.classList.remove('selected');
+        if (i === index) btn.classList.add('selected');
+      });
+    }
+
+    // Show hint
+    function showHint() {
+      document.getElementById('hintText').classList.add('visible');
+      document.getElementById('hintBtn').style.display = 'none';
+    }
+
+    // Check answer
+    function checkAnswer() {
+      if (answered) return;
+
+      const question = questions[currentQuestionIndex];
+      let isCorrect = false;
+      let userAnswer = '';
+
+      if (question.type === 'text') {
+        userAnswer = document.getElementById('answerInput').value.trim();
+        if (!userAnswer) {
+          alert('Kirjoita vastaus ensin!');
+          return;
+        }
+        isCorrect = isAnswerCorrect(userAnswer, question.answers);
+      } else {
+        if (selectedOptionIndex === null) {
+          alert('Valitse vaihtoehto ensin!');
+          return;
+        }
+        isCorrect = selectedOptionIndex === question.correctIndex;
+
+        // Highlight correct/incorrect options
+        const buttons = document.querySelectorAll('.option-btn');
+        buttons.forEach((btn, i) => {
+          btn.disabled = true;
+          if (i === question.correctIndex) {
+            btn.classList.add('correct');
+          } else if (i === selectedOptionIndex && !isCorrect) {
+            btn.classList.add('incorrect');
+          }
+        });
+      }
+
+      answered = true;
+      const feedback = document.getElementById('feedback');
+
+      if (isCorrect) {
+        score++;
+        document.getElementById('scoreDisplay').textContent = score;
+        feedback.className = 'feedback correct';
+        feedback.innerHTML = '✓ Oikein! Hienoa! 🎄';
+        celebrate();
+      } else {
+        feedback.className = 'feedback incorrect';
+        let correctAnswer = question.type === 'text'
+          ? question.answers[0]
+          : question.options[question.correctIndex];
+        feedback.innerHTML = `✗ Väärin! <div class="correct-answer-reveal">Oikea vastaus: ${correctAnswer}</div>`;
+      }
+
+      // Show next button
+      document.getElementById('submitArea').style.display = 'none';
+      document.getElementById('nextArea').style.display = 'block';
+    }
+
+    // Next question
+    function nextQuestion() {
+      currentQuestionIndex++;
+
+      if (currentQuestionIndex >= questions.length) {
+        endQuiz();
+      } else {
+        displayQuestion();
+      }
+    }
+
+    // End quiz
+    function endQuiz() {
+      document.getElementById('quizScreen').style.display = 'none';
+      document.getElementById('endScreen').style.display = 'block';
+      document.getElementById('finalScore').textContent = score;
+
+      const percentage = (score / questions.length) * 100;
+      let message = '';
+      let emoji = '';
+
+      if (percentage >= 90) {
+        message = 'Mahtavaa! Olet todellinen tietäjä! 🌟';
+        emoji = '🏆🎄🌟';
+      } else if (percentage >= 70) {
+        message = 'Hienoa työtä! Osaat todella paljon! ';
+        emoji = '🎁🎄✨';
+      } else if (percentage >= 50) {
+        message = 'Hyvin meni! Jatka samaan malliin!';
+        emoji = '🎄🎅⭐';
+      } else {
+        message = 'Hyvä yritys! Harjoitus tekee mestarin!';
+        emoji = '🎄❄️🌲';
+      }
+
+      document.getElementById('endMessage').textContent = message;
+      document.getElementById('endEmoji').textContent = emoji;
+
+      // Big celebration
+      if (percentage >= 50) {
+        setTimeout(celebrate, 500);
+        setTimeout(celebrate, 1500);
+      }
+    }
+
+    // Restart quiz
+    function restartQuiz() {
+      currentQuestionIndex = 0;
+      score = 0;
+      document.getElementById('scoreDisplay').textContent = 0;
+      questions = shuffleArray(questions);
+      document.getElementById('endScreen').style.display = 'none';
+      document.getElementById('quizScreen').style.display = 'block';
+      displayQuestion();
+    }
+
+    // Handle Enter key for text input
+    document.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && !answered) {
+        const textArea = document.getElementById('textInputArea');
+        if (textArea.style.display !== 'none') {
+          checkAnswer();
+        }
+      }
+    });
+
+    // Initialize
+    createSnowflakes();
+    loadQuestions();
+  </script>
+</body>
+</html>
