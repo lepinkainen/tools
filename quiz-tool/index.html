@@ -1,461 +1,851 @@
 <!DOCTYPE html>
 <html lang="fi">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Jouluinen Tietokilpailu</title>
-  <link rel="stylesheet" href="../static/common.css" />
-  <link rel="stylesheet" href="./quiz.css" />
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
-</head>
-<body>
-  <div class="decorations">🎄</div>
-  <div class="decorations-right">🎅</div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Jouluinen Tietokilpailu</title>
+    <link rel="stylesheet" href="../static/common.css" />
+    <link rel="stylesheet" href="./quiz.css" />
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    <script src="./elf.js"></script>
+  </head>
+  <body>
+    <div class="decorations">🎄</div>
+    <div class="decorations-right">🎅</div>
 
-  <div class="quiz-container">
-    <h1>Jouluinen Tietokilpailu</h1>
+    <div class="quiz-container">
+      <h1>Jouluinen Tietokilpailu</h1>
 
-    <!-- Start Screen -->
-    <div id="startScreen" class="start-screen">
-      <div class="christmas-emoji">🎄🎁🦌</div>
-      <h2 style="color: #228b22;">Tervetuloa jouluvisaan!</h2>
-      <p style="color: #ffffff; font-size: 1.2em;">
-        Testaa tietosi matematiikasta, biologiasta, ruotsista, englannista, maantiedosta ja kotitaloudesta!
-      </p>
-      <p style="color: #88cc88;">
-        30 kysymystä odottaa sinua. Onnea matkaan!
-      </p>
-      <button class="submit-btn" onclick="startQuiz()" style="margin-top: 30px;">
-        Aloita visa!
-      </button>
-    </div>
-
-    <!-- Quiz Screen -->
-    <div id="quizScreen" style="display: none;">
-      <div class="progress-text">
-        Kysymys <span id="currentNum">1</span> / <span id="totalNum">30</span>
-      </div>
-      <div class="progress-bar">
-        <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
-      </div>
-
-      <div class="score-display">
-        Pisteet: <span id="scoreDisplay">0</span>
-      </div>
-
-      <div class="question-box">
-        <div class="category-badge" id="categoryBadge">Matematiikka</div>
-        <div class="question-text" id="questionText"></div>
-        <div class="question-english" id="questionEnglish"></div>
-
-        <!-- Text Input -->
-        <div id="textInputArea" style="display: none;">
-          <input
-            type="text"
-            class="answer-input"
-            id="answerInput"
-            placeholder="Kirjoita vastauksesi..."
-            autocomplete="off"
-          />
-        </div>
-
-        <!-- Multiple Choice -->
-        <div id="multipleChoiceArea" class="options-container" style="display: none;">
-        </div>
-
-        <button class="hint-btn" id="hintBtn" onclick="showHint()">
-          Näytä vihje
+      <!-- Start Screen -->
+      <div id="startScreen" class="start-screen">
+        <div class="christmas-emoji">🎄🎁🦌</div>
+        <h2 style="color: #228b22">Tervetuloa jouluvisaan!</h2>
+        <p style="color: #ffffff; font-size: 1.2em">
+          Testaa tietosi matematiikasta, biologiasta, ruotsista, englannista,
+          maantiedosta ja kotitaloudesta!
+        </p>
+        <p style="color: #88cc88">30 kysymystä odottaa sinua. Onnea matkaan!</p>
+        <button
+          class="submit-btn"
+          onclick="startQuiz()"
+          style="margin-top: 30px"
+        >
+          Aloita visa!
         </button>
-        <div class="hint-text" id="hintText"></div>
+      </div>
 
-        <div class="feedback" id="feedback"></div>
-
-        <div id="submitArea">
-          <button class="submit-btn" id="submitBtn" onclick="checkAnswer()">
-            Vastaa
-          </button>
+      <!-- Quiz Screen -->
+      <div id="quizScreen" style="display: none">
+        <div class="progress-text">
+          Kysymys <span id="currentNum">1</span> / <span id="totalNum">30</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill" style="width: 0%"></div>
         </div>
 
-        <div id="nextArea" style="display: none;">
-          <button class="submit-btn next-btn" onclick="nextQuestion()">
-            Seuraava kysymys
+        <div class="score-display">
+          Pisteet: <span id="scoreDisplay">0</span>
+        </div>
+
+        <div class="question-box">
+          <div class="category-badge" id="categoryBadge">Matematiikka</div>
+          <div class="question-text" id="questionText"></div>
+
+          <!-- Text Input -->
+          <div id="textInputArea" style="display: none">
+            <input
+              type="text"
+              class="answer-input"
+              id="answerInput"
+              placeholder="Kirjoita vastauksesi..."
+              autocomplete="off"
+            />
+          </div>
+
+          <!-- Multiple Choice -->
+          <div
+            id="multipleChoiceArea"
+            class="options-container"
+            style="display: none"
+          ></div>
+
+          <button class="hint-btn" id="hintBtn" onclick="showHint()">
+            Näytä vihje
+          </button>
+          <div class="hint-text" id="hintText"></div>
+
+          <div class="feedback" id="feedback"></div>
+          <div id="elfBox" class="elf-box elf-curious" aria-live="polite">
+            <div class="elf-name">Tonttu:</div>
+            <div id="elfText">Tonttu odottelee hiljaa...</div>
+          </div>
+
+          <div id="submitArea">
+            <button class="submit-btn" id="submitBtn" onclick="checkAnswer()">
+              Vastaa
+            </button>
+          </div>
+
+          <div id="nextArea" style="display: none">
+            <button class="submit-btn next-btn" onclick="nextQuestion()">
+              Seuraava kysymys
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- End Screen -->
+      <div id="endScreen" class="end-screen" style="display: none">
+        <div class="christmas-emoji">🎉🎄🎁</div>
+        <h2 style="color: #228b22">Visa päättyi!</h2>
+        <div class="final-score">
+          Sait <span id="finalScore">0</span> /
+          <span id="finalTotal">30</span> pistettä!
+        </div>
+        <p id="endMessage" style="color: #ffffff; font-size: 1.3em"></p>
+        <div class="christmas-emoji" id="endEmoji">🌟</div>
+        <button class="submit-btn restart-btn" onclick="restartQuiz()">
+          Pelaa uudelleen!
+        </button>
+      </div>
+
+      <!-- Debug Panel -->
+      <div
+        id="debugPanel"
+        style="
+          display: none;
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          background: rgba(0, 0, 0, 0.9);
+          border: 2px solid #ff1493;
+          padding: 15px;
+          border-radius: 10px;
+          z-index: 10000;
+          max-width: 300px;
+        "
+      >
+        <h3 style="color: #ff1493; margin: 0 0 10px 0; font-size: 14px">
+          🐛 DEBUG MODE
+        </h3>
+        <div
+          id="debugButtons"
+          style="display: flex; flex-direction: column; gap: 8px"
+        >
+          <button
+            onclick="debugShowAllClues()"
+            style="padding: 5px; font-size: 12px; background: #228b22"
+          >
+            Show All Clues
+          </button>
+          <button
+            onclick="debugAutoAnswer()"
+            style="
+              padding: 5px;
+              font-size: 12px;
+              background: #ffd700;
+              color: #000;
+            "
+          >
+            Auto-Answer Correct
+          </button>
+          <button
+            onclick="debugTriggerCompletion()"
+            style="padding: 5px; font-size: 12px; background: #8b008b"
+          >
+            Trigger Completion Clue
+          </button>
+          <input
+            type="number"
+            id="debugJumpInput"
+            placeholder="Jump to Q#"
+            min="1"
+            max="30"
+            style="padding: 5px; font-size: 12px"
+          />
+          <button
+            onclick="debugJumpToCustom()"
+            style="padding: 5px; font-size: 12px"
+          >
+            Jump to Custom Q
+          </button>
+        </div>
+      </div>
+      <div id="milestoneOverlay" class="milestone-overlay" aria-hidden="true">
+        <div class="overlay-content">
+          <div class="overlay-elf">🧝‍♂️</div>
+          <h3 id="milestoneTitle">Paketti</h3>
+          <p id="milestoneMessage">Tonttu supisee jotain salaperäistä...</p>
+          <div class="overlay-clue">
+            <span class="clue-label">Vihje:</span>
+            <span id="milestoneClue">CLUE_1</span>
+          </div>
+          <button id="milestoneContinue" class="submit-btn">
+            Jatka matkaa
           </button>
         </div>
       </div>
     </div>
 
-    <!-- End Screen -->
-    <div id="endScreen" class="end-screen" style="display: none;">
-      <div class="christmas-emoji">🎉🎄🎁</div>
-      <h2 style="color: #228b22;">Visa päättyi!</h2>
-      <div class="final-score">
-        Sait <span id="finalScore">0</span> / <span id="finalTotal">30</span> pistettä!
-      </div>
-      <p id="endMessage" style="color: #ffffff; font-size: 1.3em;"></p>
-      <div class="christmas-emoji" id="endEmoji">🌟</div>
-      <button class="submit-btn restart-btn" onclick="restartQuiz()">
-        Pelaa uudelleen!
-      </button>
-    </div>
-  </div>
+    <script>
+      // Debug mode detection
+      const urlParams = new URLSearchParams(window.location.search);
+      const DEBUG_MODE = urlParams.has("debug");
 
-  <script>
-    // Quiz state
-    let questions = [];
-    let currentQuestionIndex = 0;
-    let score = 0;
-    let answered = false;
-    let selectedOptionIndex = null;
+      // Quiz state
+      let questions = [];
+      let currentQuestionIndex = 0;
+      let score = 0;
+      let answered = false;
+      let selectedOptionIndex = null;
+      let cluesData = null; // Will hold loaded clues.json data
+      let elfInitialized = false;
+      let currentHintUsed = false;
 
-    // Create falling snowflakes
-    function createSnowflakes() {
-      const snowflakes = ['❄', '❅', '❆', '✻', '✼'];
-      setInterval(() => {
-        const snowflake = document.createElement('div');
-        snowflake.className = 'snowflake';
-        snowflake.textContent = snowflakes[Math.floor(Math.random() * snowflakes.length)];
-        snowflake.style.left = Math.random() * 100 + 'vw';
-        snowflake.style.animationDuration = (Math.random() * 3 + 4) + 's';
-        snowflake.style.fontSize = (Math.random() * 1 + 0.8) + 'em';
-        document.body.appendChild(snowflake);
+      // Create falling snowflakes
+      function createSnowflakes() {
+        const snowflakes = ["❄", "❅", "❆", "✻", "✼"];
+        setInterval(() => {
+          const snowflake = document.createElement("div");
+          snowflake.className = "snowflake";
+          snowflake.textContent =
+            snowflakes[Math.floor(Math.random() * snowflakes.length)];
+          snowflake.style.left = Math.random() * 100 + "vw";
+          snowflake.style.animationDuration = Math.random() * 3 + 4 + "s";
+          snowflake.style.fontSize = Math.random() * 1 + 0.8 + "em";
+          document.body.appendChild(snowflake);
 
-        setTimeout(() => snowflake.remove(), 7000);
-      }, 500);
-    }
+          setTimeout(() => snowflake.remove(), 7000);
+        }, 500);
+      }
 
-    // Levenshtein distance for fuzzy matching
-    function levenshteinDistance(str1, str2) {
-      const m = str1.length;
-      const n = str2.length;
-      const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+      // Levenshtein distance for fuzzy matching
+      function levenshteinDistance(str1, str2) {
+        const m = str1.length;
+        const n = str2.length;
+        const dp = Array(m + 1)
+          .fill(null)
+          .map(() => Array(n + 1).fill(0));
 
-      for (let i = 0; i <= m; i++) dp[i][0] = i;
-      for (let j = 0; j <= n; j++) dp[0][j] = j;
+        for (let i = 0; i <= m; i++) dp[i][0] = i;
+        for (let j = 0; j <= n; j++) dp[0][j] = j;
 
-      for (let i = 1; i <= m; i++) {
-        for (let j = 1; j <= n; j++) {
-          if (str1[i - 1] === str2[j - 1]) {
-            dp[i][j] = dp[i - 1][j - 1];
-          } else {
-            dp[i][j] = 1 + Math.min(
-              dp[i - 1][j],
-              dp[i][j - 1],
-              dp[i - 1][j - 1]
-            );
+        for (let i = 1; i <= m; i++) {
+          for (let j = 1; j <= n; j++) {
+            if (str1[i - 1] === str2[j - 1]) {
+              dp[i][j] = dp[i - 1][j - 1];
+            } else {
+              dp[i][j] =
+                1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+            }
+          }
+        }
+        return dp[m][n];
+      }
+
+      // Calculate similarity percentage
+      function similarity(str1, str2) {
+        const maxLen = Math.max(str1.length, str2.length);
+        if (maxLen === 0) return 1;
+        const distance = levenshteinDistance(str1, str2);
+        return (maxLen - distance) / maxLen;
+      }
+
+      // Normalize string for comparison
+      function normalize(str) {
+        return str
+          .toLowerCase()
+          .trim()
+          .replace(/\s+/g, " ")
+          .replace(/[.,!?]/g, "")
+          .replace(/ä/g, "a")
+          .replace(/ö/g, "o")
+          .replace(/å/g, "a");
+      }
+
+      // Check if answer is correct with fuzzy matching
+      function isAnswerCorrect(userAnswer, correctAnswers) {
+        const normalizedUser = normalize(userAnswer);
+
+        for (const correct of correctAnswers) {
+          const normalizedCorrect = normalize(correct);
+
+          // Exact match
+          if (normalizedUser === normalizedCorrect) return true;
+
+          // Fuzzy match with 80% threshold
+          if (similarity(normalizedUser, normalizedCorrect) >= 0.8) return true;
+
+          // Check if user answer contains the correct answer
+          if (normalizedUser.includes(normalizedCorrect)) return true;
+          if (
+            normalizedCorrect.includes(normalizedUser) &&
+            normalizedUser.length >= 3
+          )
+            return true;
+        }
+
+        return false;
+      }
+
+      // Celebration effects
+      function celebrate() {
+        // Confetti burst
+        const count = 200;
+        const defaults = {
+          origin: { y: 0.7 },
+          colors: ["#ff4444", "#228b22", "#ffd700", "#ffffff"],
+        };
+
+        function fire(particleRatio, opts) {
+          confetti({
+            ...defaults,
+            ...opts,
+            particleCount: Math.floor(count * particleRatio),
+          });
+        }
+
+        fire(0.25, { spread: 26, startVelocity: 55 });
+        fire(0.2, { spread: 60 });
+        fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+        fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+        fire(0.1, { spread: 120, startVelocity: 45 });
+
+        // Extra Christmas confetti
+        setTimeout(() => {
+          confetti({
+            particleCount: 50,
+            spread: 100,
+            origin: { y: 0.6 },
+            shapes: ["circle"],
+            colors: ["#ff0000", "#00ff00", "#ffffff"],
+          });
+        }, 300);
+      }
+
+      function updateElfBox(response) {
+        if (!response) return;
+        const box = document.getElementById("elfBox");
+        const textEl = document.getElementById("elfText");
+        if (!box || !textEl) return;
+        if (response.text) {
+          textEl.textContent = response.text;
+        }
+        const moodClasses = [
+          "elf-curious",
+          "elf-cocky",
+          "elf-mocking",
+          "elf-impressed",
+          "elf-reluctantly-helpful",
+        ];
+        box.classList.remove(...moodClasses);
+        const moodClass = response.mood
+          ? `elf-${response.mood.replace(/_/g, "-")}`
+          : "elf-curious";
+        box.classList.add(moodClass);
+
+        if (response.fx) {
+          if (response.fx.shake) {
+            box.classList.add("elf-shake");
+            setTimeout(() => box.classList.remove("elf-shake"), 600);
+          }
+          if (response.fx.sparkle) {
+            box.classList.add("elf-sparkle");
+            setTimeout(() => box.classList.remove("elf-sparkle"), 1200);
           }
         }
       }
-      return dp[m][n];
-    }
 
-    // Calculate similarity percentage
-    function similarity(str1, str2) {
-      const maxLen = Math.max(str1.length, str2.length);
-      if (maxLen === 0) return 1;
-      const distance = levenshteinDistance(str1, str2);
-      return (maxLen - distance) / maxLen;
-    }
-
-    // Normalize string for comparison
-    function normalize(str) {
-      return str.toLowerCase()
-        .trim()
-        .replace(/\s+/g, ' ')
-        .replace(/[.,!?]/g, '')
-        .replace(/ä/g, 'a')
-        .replace(/ö/g, 'o')
-        .replace(/å/g, 'a');
-    }
-
-    // Check if answer is correct with fuzzy matching
-    function isAnswerCorrect(userAnswer, correctAnswers) {
-      const normalizedUser = normalize(userAnswer);
-
-      for (const correct of correctAnswers) {
-        const normalizedCorrect = normalize(correct);
-
-        // Exact match
-        if (normalizedUser === normalizedCorrect) return true;
-
-        // Fuzzy match with 80% threshold
-        if (similarity(normalizedUser, normalizedCorrect) >= 0.8) return true;
-
-        // Check if user answer contains the correct answer
-        if (normalizedUser.includes(normalizedCorrect)) return true;
-        if (normalizedCorrect.includes(normalizedUser) && normalizedUser.length >= 3) return true;
-      }
-
-      return false;
-    }
-
-    // Celebration effects
-    function celebrate() {
-      // Confetti burst
-      const count = 200;
-      const defaults = {
-        origin: { y: 0.7 },
-        colors: ['#ff4444', '#228b22', '#ffd700', '#ffffff']
-      };
-
-      function fire(particleRatio, opts) {
-        confetti({
-          ...defaults,
-          ...opts,
-          particleCount: Math.floor(count * particleRatio)
+      function ensureElfInit() {
+        if (elfInitialized || !window.Elf || !questions.length) return;
+        const milestones = cluesData?.milestones?.map((m) => m.threshold) || [];
+        Elf.init({
+          totalQuestions: questions.length,
+          milestones: milestones,
         });
+        elfInitialized = true;
       }
 
-      fire(0.25, { spread: 26, startVelocity: 55 });
-      fire(0.2, { spread: 60 });
-      fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
-      fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
-      fire(0.1, { spread: 120, startVelocity: 45 });
-
-      // Extra Christmas confetti
-      setTimeout(() => {
-        confetti({
-          particleCount: 50,
-          spread: 100,
-          origin: { y: 0.6 },
-          shapes: ['circle'],
-          colors: ['#ff0000', '#00ff00', '#ffffff']
+      function tryHandleMilestone(callback) {
+        if (!window.Elf || !elfInitialized || !cluesData) return false;
+        const milestone = Elf.checkMilestone(currentQuestionIndex);
+        if (!milestone) return false;
+        const details = Elf.onMilestone({
+          milestoneNumber: milestone.milestoneNumber,
         });
-      }, 300);
-    }
-
-    // Load questions
-    async function loadQuestions() {
-      try {
-        const response = await fetch('questions.json');
-        const data = await response.json();
-        questions = shuffleArray(data.questions);
-        document.getElementById('totalNum').textContent = questions.length;
-        document.getElementById('finalTotal').textContent = questions.length;
-      } catch (error) {
-        console.error('Error loading questions:', error);
-        alert('Virhe ladattaessa kysymyksiä!');
-      }
-    }
-
-    // Shuffle array
-    function shuffleArray(array) {
-      const shuffled = [...array];
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-      }
-      return shuffled;
-    }
-
-    // Start quiz
-    function startQuiz() {
-      document.getElementById('startScreen').style.display = 'none';
-      document.getElementById('quizScreen').style.display = 'block';
-      displayQuestion();
-    }
-
-    // Display current question
-    function displayQuestion() {
-      const question = questions[currentQuestionIndex];
-      answered = false;
-      selectedOptionIndex = null;
-
-      // Update progress
-      document.getElementById('currentNum').textContent = currentQuestionIndex + 1;
-      const progress = ((currentQuestionIndex) / questions.length) * 100;
-      document.getElementById('progressFill').style.width = progress + '%';
-
-      // Update category
-      const categoryBadge = document.getElementById('categoryBadge');
-      categoryBadge.textContent = question.categoryName;
-
-      // Update question text
-      document.getElementById('questionText').textContent = question.question;
-      document.getElementById('questionEnglish').textContent = question.questionEn;
-
-      // Reset hint
-      document.getElementById('hintText').textContent = question.hint;
-      document.getElementById('hintText').classList.remove('visible');
-      document.getElementById('hintBtn').style.display = 'inline-block';
-
-      // Reset feedback
-      document.getElementById('feedback').className = 'feedback';
-      document.getElementById('feedback').innerHTML = '';
-
-      // Show appropriate input type
-      const textArea = document.getElementById('textInputArea');
-      const mcArea = document.getElementById('multipleChoiceArea');
-      const answerInput = document.getElementById('answerInput');
-
-      if (question.type === 'text') {
-        textArea.style.display = 'block';
-        mcArea.style.display = 'none';
-        answerInput.value = '';
-        answerInput.focus();
-      } else {
-        textArea.style.display = 'none';
-        mcArea.style.display = 'flex';
-
-        // Create options
-        mcArea.innerHTML = '';
-        question.options.forEach((option, index) => {
-          const btn = document.createElement('button');
-          btn.className = 'option-btn';
-          btn.textContent = `${String.fromCharCode(65 + index)}) ${option}`;
-          btn.onclick = () => selectOption(index);
-          mcArea.appendChild(btn);
-        });
+        updateElfBox(details);
+        showMilestoneOverlay(details, milestone.milestoneNumber, callback);
+        return true;
       }
 
-      // Show submit, hide next
-      document.getElementById('submitArea').style.display = 'block';
-      document.getElementById('nextArea').style.display = 'none';
-      document.getElementById('submitBtn').disabled = false;
-    }
+      function showMilestoneOverlay(info, milestoneNumber, callback) {
+        const overlay = document.getElementById("milestoneOverlay");
+        if (!overlay) return;
+        const title = document.getElementById("milestoneTitle");
+        const message = document.getElementById("milestoneMessage");
+        const clue = document.getElementById("milestoneClue");
+        const button = document.getElementById("milestoneContinue");
 
-    // Select option for multiple choice
-    function selectOption(index) {
-      if (answered) return;
+        title.textContent = info.title || `Paketti ${milestoneNumber}`;
+        message.textContent = info.text || "";
 
-      selectedOptionIndex = index;
-      const buttons = document.querySelectorAll('.option-btn');
-      buttons.forEach((btn, i) => {
-        btn.classList.remove('selected');
-        if (i === index) btn.classList.add('selected');
-      });
-    }
+        // Determine if this is a completion clue or regular milestone
+        const isCompletionClue =
+          milestoneNumber > (cluesData?.milestones?.length || 0);
+        const clueText = isCompletionClue
+          ? cluesData?.completionClue?.clue
+          : cluesData?.milestones?.[milestoneNumber - 1]?.clue;
+        clue.textContent = clueText || `CLUE_${milestoneNumber}`;
 
-    // Show hint
-    function showHint() {
-      document.getElementById('hintText').classList.add('visible');
-      document.getElementById('hintBtn').style.display = 'none';
-    }
+        overlay.classList.add("visible");
+        overlay.setAttribute("aria-hidden", "false");
 
-    // Check answer
-    function checkAnswer() {
-      if (answered) return;
-
-      const question = questions[currentQuestionIndex];
-      let isCorrect = false;
-      let userAnswer = '';
-
-      if (question.type === 'text') {
-        userAnswer = document.getElementById('answerInput').value.trim();
-        if (!userAnswer) {
-          alert('Kirjoita vastaus ensin!');
-          return;
-        }
-        isCorrect = isAnswerCorrect(userAnswer, question.answers);
-      } else {
-        if (selectedOptionIndex === null) {
-          alert('Valitse vaihtoehto ensin!');
-          return;
-        }
-        isCorrect = selectedOptionIndex === question.correctIndex;
-
-        // Highlight correct/incorrect options
-        const buttons = document.querySelectorAll('.option-btn');
-        buttons.forEach((btn, i) => {
-          btn.disabled = true;
-          if (i === question.correctIndex) {
-            btn.classList.add('correct');
-          } else if (i === selectedOptionIndex && !isCorrect) {
-            btn.classList.add('incorrect');
+        button.onclick = () => {
+          hideMilestoneOverlay();
+          if (typeof callback === "function") {
+            callback();
           }
-        });
+        };
+
+        if (info.fx && info.fx.confetti) {
+          celebrate();
+        }
       }
 
-      answered = true;
-      const feedback = document.getElementById('feedback');
-
-      if (isCorrect) {
-        score++;
-        document.getElementById('scoreDisplay').textContent = score;
-        feedback.className = 'feedback correct';
-        feedback.innerHTML = '✓ Oikein! Hienoa! 🎄';
-        celebrate();
-      } else {
-        feedback.className = 'feedback incorrect';
-        let correctAnswer = question.type === 'text'
-          ? question.answers[0]
-          : question.options[question.correctIndex];
-        feedback.innerHTML = `✗ Väärin! <div class="correct-answer-reveal">Oikea vastaus: ${correctAnswer}</div>`;
+      function hideMilestoneOverlay() {
+        const overlay = document.getElementById("milestoneOverlay");
+        if (!overlay) return;
+        overlay.classList.remove("visible");
+        overlay.setAttribute("aria-hidden", "true");
       }
 
-      // Show next button
-      document.getElementById('submitArea').style.display = 'none';
-      document.getElementById('nextArea').style.display = 'block';
-    }
+      // Load clues from clues.json
+      async function loadClues() {
+        try {
+          const response = await fetch("clues.json");
+          if (!response.ok) {
+            console.log("No clues.json found - milestones disabled");
+            return null;
+          }
+          const data = await response.json();
+          if (!data.milestones || !Array.isArray(data.milestones)) {
+            console.warn("Invalid clues.json format - milestones disabled");
+            return null;
+          }
+          return data;
+        } catch (error) {
+          console.log("Clues not available:", error.message);
+          return null;
+        }
+      }
 
-    // Next question
-    function nextQuestion() {
-      currentQuestionIndex++;
+      // Load questions and clues
+      async function loadQuestions() {
+        try {
+          const [questionsResponse, cluesResponse] = await Promise.all([
+            fetch("questions.json"),
+            loadClues(),
+          ]);
+          const data = await questionsResponse.json();
+          questions = shuffleArray(data.questions);
+          cluesData = cluesResponse;
+          document.getElementById("totalNum").textContent = questions.length;
+          document.getElementById("finalTotal").textContent = questions.length;
+        } catch (error) {
+          console.error("Error loading questions:", error);
+          alert("Virhe ladattaessa kysymyksiä!");
+        }
+      }
 
-      if (currentQuestionIndex >= questions.length) {
-        endQuiz();
-      } else {
+      // Shuffle array
+      function shuffleArray(array) {
+        const shuffled = [...array];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled;
+      }
+
+      // Start quiz
+      function startQuiz() {
+        if (!questions.length) {
+          alert("Kysymyksiä ladataan vielä, odota hetki!");
+          return;
+        }
+        ensureElfInit();
+        if (window.Elf) {
+          const intro = Elf.onQuizStart();
+          updateElfBox(intro);
+        }
+        document.getElementById("startScreen").style.display = "none";
+        document.getElementById("quizScreen").style.display = "block";
         displayQuestion();
       }
-    }
 
-    // End quiz
-    function endQuiz() {
-      document.getElementById('quizScreen').style.display = 'none';
-      document.getElementById('endScreen').style.display = 'block';
-      document.getElementById('finalScore').textContent = score;
+      // Display current question
+      function displayQuestion() {
+        const question = questions[currentQuestionIndex];
+        answered = false;
+        selectedOptionIndex = null;
+        currentHintUsed = false;
 
-      const percentage = (score / questions.length) * 100;
-      let message = '';
-      let emoji = '';
+        // Update progress
+        document.getElementById("currentNum").textContent =
+          currentQuestionIndex + 1;
+        const progress = (currentQuestionIndex / questions.length) * 100;
+        document.getElementById("progressFill").style.width = progress + "%";
 
-      if (percentage >= 90) {
-        message = 'Mahtavaa! Olet todellinen tietäjä! 🌟';
-        emoji = '🏆🎄🌟';
-      } else if (percentage >= 70) {
-        message = 'Hienoa työtä! Osaat todella paljon! ';
-        emoji = '🎁🎄✨';
-      } else if (percentage >= 50) {
-        message = 'Hyvin meni! Jatka samaan malliin!';
-        emoji = '🎄🎅⭐';
-      } else {
-        message = 'Hyvä yritys! Harjoitus tekee mestarin!';
-        emoji = '🎄❄️🌲';
+        // Update category
+        const categoryBadge = document.getElementById("categoryBadge");
+        categoryBadge.textContent = question.categoryName;
+
+        // Update question text
+        document.getElementById("questionText").textContent = question.question;
+
+        // Reset hint
+        document.getElementById("hintText").textContent = question.hint;
+        document.getElementById("hintText").classList.remove("visible");
+        document.getElementById("hintBtn").style.display = "inline-block";
+
+        // Reset feedback
+        document.getElementById("feedback").className = "feedback";
+        document.getElementById("feedback").innerHTML = "";
+
+        // Show appropriate input type
+        const textArea = document.getElementById("textInputArea");
+        const mcArea = document.getElementById("multipleChoiceArea");
+        const answerInput = document.getElementById("answerInput");
+
+        if (question.type === "text") {
+          textArea.style.display = "block";
+          mcArea.style.display = "none";
+          answerInput.value = "";
+          answerInput.focus();
+        } else {
+          textArea.style.display = "none";
+          mcArea.style.display = "flex";
+
+          // Create options
+          mcArea.innerHTML = "";
+          question.options.forEach((option, index) => {
+            const btn = document.createElement("button");
+            btn.className = "option-btn";
+            btn.textContent = `${String.fromCharCode(65 + index)}) ${option}`;
+            btn.onclick = () => selectOption(index);
+            mcArea.appendChild(btn);
+          });
+        }
+
+        // Show submit, hide next
+        document.getElementById("submitArea").style.display = "block";
+        document.getElementById("nextArea").style.display = "none";
+        document.getElementById("submitBtn").disabled = false;
       }
 
-      document.getElementById('endMessage').textContent = message;
-      document.getElementById('endEmoji').textContent = emoji;
+      // Select option for multiple choice
+      function selectOption(index) {
+        if (answered) return;
 
-      // Big celebration
-      if (percentage >= 50) {
-        setTimeout(celebrate, 500);
-        setTimeout(celebrate, 1500);
+        selectedOptionIndex = index;
+        const buttons = document.querySelectorAll(".option-btn");
+        buttons.forEach((btn, i) => {
+          btn.classList.remove("selected");
+          if (i === index) btn.classList.add("selected");
+        });
       }
-    }
 
-    // Restart quiz
-    function restartQuiz() {
-      currentQuestionIndex = 0;
-      score = 0;
-      document.getElementById('scoreDisplay').textContent = 0;
-      questions = shuffleArray(questions);
-      document.getElementById('endScreen').style.display = 'none';
-      document.getElementById('quizScreen').style.display = 'block';
-      displayQuestion();
-    }
+      // Show hint
+      function showHint() {
+        const question = questions[currentQuestionIndex];
+        document.getElementById("hintText").classList.add("visible");
+        document.getElementById("hintBtn").style.display = "none";
+        if (!currentHintUsed && window.Elf && elfInitialized) {
+          const response = Elf.onHintUsed({
+            questionIndex: currentQuestionIndex + 1,
+            category: question.categoryName,
+          });
+          updateElfBox(response);
+        }
+        currentHintUsed = true;
+      }
 
-    // Handle Enter key for text input
-    document.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter' && !answered) {
-        const textArea = document.getElementById('textInputArea');
-        if (textArea.style.display !== 'none') {
-          checkAnswer();
+      // Check answer
+      function checkAnswer() {
+        if (answered) return;
+
+        const question = questions[currentQuestionIndex];
+        let isCorrect = false;
+        let userAnswer = "";
+
+        if (question.type === "text") {
+          userAnswer = document.getElementById("answerInput").value.trim();
+          if (!userAnswer) {
+            alert("Kirjoita vastaus ensin!");
+            return;
+          }
+          isCorrect = isAnswerCorrect(userAnswer, question.answers);
+        } else {
+          if (selectedOptionIndex === null) {
+            alert("Valitse vaihtoehto ensin!");
+            return;
+          }
+          isCorrect = selectedOptionIndex === question.correctIndex;
+
+          // Highlight correct/incorrect options
+          const buttons = document.querySelectorAll(".option-btn");
+          buttons.forEach((btn, i) => {
+            btn.disabled = true;
+            if (i === question.correctIndex) {
+              btn.classList.add("correct");
+            } else if (i === selectedOptionIndex && !isCorrect) {
+              btn.classList.add("incorrect");
+            }
+          });
+        }
+
+        answered = true;
+        const feedback = document.getElementById("feedback");
+
+        if (isCorrect) {
+          score++;
+          document.getElementById("scoreDisplay").textContent = score;
+          feedback.className = "feedback correct";
+          feedback.innerHTML = "✓ Oikein! Hienoa! 🎄";
+          celebrate();
+        } else {
+          feedback.className = "feedback incorrect";
+          let correctAnswer =
+            question.type === "text"
+              ? question.answers[0]
+              : question.options[question.correctIndex];
+          feedback.innerHTML = `✗ Väärin! <div class="correct-answer-reveal">Oikea vastaus: ${correctAnswer}</div>`;
+        }
+
+        if (window.Elf && elfInitialized) {
+          const elfResponse = Elf.onAnswer({
+            correct: isCorrect,
+            usedHint: currentHintUsed,
+            questionIndex: currentQuestionIndex + 1,
+            category: question.categoryName,
+          });
+          updateElfBox(elfResponse);
+        }
+
+        // Show next button
+        document.getElementById("submitArea").style.display = "none";
+        document.getElementById("nextArea").style.display = "block";
+      }
+
+      // Next question
+      function nextQuestion() {
+        currentQuestionIndex++;
+
+        const proceed = () => {
+          if (currentQuestionIndex >= questions.length) {
+            endQuiz();
+          } else {
+            displayQuestion();
+          }
+        };
+
+        if (tryHandleMilestone(proceed)) {
+          return;
+        }
+
+        proceed();
+      }
+
+      // Show end screen
+      function showEndScreen() {
+        document.getElementById("quizScreen").style.display = "none";
+        document.getElementById("endScreen").style.display = "block";
+        document.getElementById("finalScore").textContent = score;
+
+        const percentage = (score / questions.length) * 100;
+        let message = "";
+        let emoji = "";
+
+        if (percentage >= 90) {
+          message = "Mahtavaa! Olet todellinen tietäjä! 🌟";
+          emoji = "🏆🎄🌟";
+        } else if (percentage >= 70) {
+          message = "Hienoa työtä! Osaat todella paljon! ";
+          emoji = "🎁🎄✨";
+        } else if (percentage >= 50) {
+          message = "Hyvin meni! Jatka samaan malliin!";
+          emoji = "🎄🎅⭐";
+        } else {
+          message = "Hyvä yritys! Harjoitus tekee mestarin!";
+          emoji = "🎄❄️🌲";
+        }
+
+        document.getElementById("endMessage").textContent = message;
+        document.getElementById("endEmoji").textContent = emoji;
+
+        // Big celebration
+        if (percentage >= 50) {
+          setTimeout(celebrate, 500);
+          setTimeout(celebrate, 1500);
         }
       }
-    });
 
-    // Initialize
-    createSnowflakes();
-    loadQuestions();
-  </script>
-</body>
+      // End quiz
+      function endQuiz() {
+        // Check for completion clue
+        if (cluesData?.completionClue) {
+          const completionInfo = {
+            title: "Viimeinen paketti!",
+            text: "Olet suorittanut koko visan!",
+            fx: { confetti: true },
+          };
+          const milestoneNumber = (cluesData.milestones?.length || 0) + 1;
+          showMilestoneOverlay(completionInfo, milestoneNumber, () => {
+            showEndScreen(); // Show end screen after completion clue
+          });
+        } else {
+          showEndScreen();
+        }
+      }
+
+      // Restart quiz
+      function restartQuiz() {
+        currentQuestionIndex = 0;
+        score = 0;
+        answered = false;
+        selectedOptionIndex = null;
+        currentHintUsed = false;
+        document.getElementById("scoreDisplay").textContent = 0;
+        questions = shuffleArray(questions);
+        document.getElementById("endScreen").style.display = "none";
+        document.getElementById("quizScreen").style.display = "block";
+        hideMilestoneOverlay();
+        if (window.Elf && elfInitialized) {
+          const intro = Elf.onQuizStart();
+          updateElfBox(intro);
+        }
+        displayQuestion();
+      }
+
+      // Handle Enter key for text input
+      document.addEventListener("keypress", (e) => {
+        const overlay = document.getElementById("milestoneOverlay");
+        if (overlay && overlay.classList.contains("visible")) {
+          return;
+        }
+        if (e.key === "Enter" && !answered) {
+          const textArea = document.getElementById("textInputArea");
+          if (textArea.style.display !== "none") {
+            checkAnswer();
+          }
+        }
+      });
+
+      // Debug functions
+      function debugJumpToQuestion(index) {
+        if (!DEBUG_MODE) return;
+        if (index < 0 || index >= questions.length) {
+          alert("Invalid question index");
+          return;
+        }
+        currentQuestionIndex = index;
+        score = Math.min(score, index); // Adjust score to be reasonable
+        document.getElementById("scoreDisplay").textContent = score;
+        displayQuestion();
+      }
+
+      function debugJumpToCustom() {
+        if (!DEBUG_MODE) return;
+        const input = document.getElementById("debugJumpInput");
+        const qNum = parseInt(input.value);
+        if (isNaN(qNum) || qNum < 1 || qNum > 30) {
+          alert("Enter a question number between 1 and 30");
+          return;
+        }
+        debugJumpToQuestion(qNum - 1);
+      }
+
+      function debugAutoAnswer() {
+        if (!DEBUG_MODE || answered) return;
+        const question = questions[currentQuestionIndex];
+
+        if (question.type === "text") {
+          document.getElementById("answerInput").value = question.answers[0];
+        } else {
+          selectOption(question.correctIndex);
+        }
+
+        setTimeout(() => checkAnswer(), 100);
+      }
+
+      function debugShowAllClues() {
+        if (!DEBUG_MODE) return;
+        if (!cluesData) {
+          alert("No clues.json loaded - milestones disabled");
+          return;
+        }
+        let allClues = "All Gift Clues:\n\n";
+        cluesData.milestones?.forEach((m, i) => {
+          allClues += `Milestone ${i + 1} (Q${m.threshold}): ${m.clue}\n`;
+        });
+        if (cluesData.completionClue) {
+          allClues += `\nCompletion Clue (End of quiz): ${cluesData.completionClue.clue}\n`;
+        }
+        alert(allClues);
+      }
+
+      function debugTriggerCompletion() {
+        if (!DEBUG_MODE) return;
+        if (!cluesData?.completionClue) {
+          alert("No completion clue configured in clues.json");
+          return;
+        }
+        endQuiz();
+      }
+
+      function initDebugMode() {
+        if (!DEBUG_MODE) return;
+        const panel = document.getElementById("debugPanel");
+        const buttonsContainer = document.getElementById("debugButtons");
+
+        // Add milestone buttons dynamically if clues exist
+        if (cluesData?.milestones) {
+          const fragment = document.createDocumentFragment();
+          cluesData.milestones.forEach((m, i) => {
+            const btn = document.createElement("button");
+            btn.textContent = `Jump to Q${m.threshold} (Milestone ${i + 1})`;
+            btn.style.cssText = "padding: 5px; font-size: 12px;";
+            btn.onclick = () => debugJumpToQuestion(m.threshold - 1);
+            fragment.appendChild(btn);
+          });
+          // Insert milestone buttons at the beginning
+          buttonsContainer.insertBefore(fragment, buttonsContainer.firstChild);
+        }
+
+        panel.style.display = "block";
+        console.log(
+          "%c🐛 DEBUG MODE ENABLED",
+          "color: #ff1493; font-size: 16px; font-weight: bold;"
+        );
+        if (cluesData) {
+          console.log(
+            "Milestones:",
+            cluesData.milestones?.map((m) => m.threshold)
+          );
+          console.log(
+            "Completion clue:",
+            cluesData.completionClue ? "Yes" : "No"
+          );
+        } else {
+          console.log("No clues.json loaded - milestones disabled");
+        }
+        console.log("Use the debug panel (bottom-right) to navigate");
+      }
+
+      // Initialize
+      createSnowflakes();
+      loadQuestions();
+      initDebugMode();
+    </script>
+  </body>
 </html>

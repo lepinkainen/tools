@@ -1,0 +1,19 @@
+{
+  "milestones": [
+    {
+      "threshold": 8,
+      "clue": "Valtava raha-aarteeni on oveni takana. Hahahaa!"
+    },
+    {
+      "threshold": 15,
+      "clue": "Tämä lahja on kylmässä, koska se voi lämmittää sitä, joka sen löytää."
+    },
+    {
+      "threshold": 22,
+      "clue": "Kauneutta voi lisätä monella tavalla, tämä lahja on ystäviensä kanssa piilossa."
+    }
+  ],
+  "completionClue": {
+    "clue": "Etsi loput lahjat sieltä, missä on lämpöä, höyryä ja koivun tuoksua."
+  }
+}

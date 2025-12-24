@@ -215,6 +215,71 @@ h1 {
   display: block;
 }
 
+.elf-box {
+  margin-top: 15px;
+  padding: 15px 20px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 2px solid #228b22;
+  color: #ffffff;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  min-height: 60px;
+  box-shadow: 0 0 15px rgba(34, 139, 34, 0.3);
+}
+
+.elf-name {
+  font-weight: 700;
+  color: #ffd700;
+}
+
+.elf-box #elfText {
+  flex: 1;
+  line-height: 1.4;
+}
+
+.elf-box.elf-curious {
+  border-color: #2ecc71;
+}
+
+.elf-box.elf-cocky {
+  border-color: #ff6b6b;
+  box-shadow: 0 0 18px rgba(255, 107, 107, 0.4);
+}
+
+.elf-box.elf-mocking {
+  border-color: #ffb347;
+  background: rgba(255, 140, 0, 0.15);
+}
+
+.elf-box.elf-impressed {
+  border-color: #32cd32;
+  background: rgba(50, 205, 50, 0.15);
+  box-shadow: 0 0 25px rgba(50, 205, 50, 0.5);
+}
+
+.elf-box.elf-reluctantly-helpful {
+  border-color: #ffd700;
+  background: rgba(255, 215, 0, 0.15);
+  box-shadow: 0 0 25px rgba(255, 215, 0, 0.5);
+}
+
+.elf-box.elf-shake {
+  animation: elfShake 0.4s ease;
+}
+
+.elf-box.elf-sparkle {
+  box-shadow: 0 0 25px rgba(255, 255, 255, 0.5);
+}
+
+@keyframes elfShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  50% { transform: translateX(4px); }
+  75% { transform: translateX(-2px); }
+}
+
 .feedback {
   padding: 20px;
   border-radius: 10px;
@@ -312,6 +377,60 @@ h1 {
   right: 10px;
   font-size: 2em;
   z-index: 100;
+}
+
+.milestone-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  z-index: 3000;
+}
+
+.milestone-overlay.visible {
+  display: flex;
+}
+
+.overlay-content {
+  background: rgba(20, 40, 20, 0.95);
+  border: 2px solid #ffd700;
+  border-radius: 16px;
+  padding: 30px;
+  text-align: center;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 0 40px rgba(255, 215, 0, 0.4);
+  color: #ffffff;
+}
+
+.overlay-elf {
+  font-size: 3em;
+  margin-bottom: 10px;
+}
+
+.overlay-clue {
+  background: rgba(6, 33, 6, 0.8);
+  border: 2px dashed #ffd700;
+  border-radius: 10px;
+  padding: 12px;
+  margin: 20px 0;
+  font-size: 1.15em;
+  color: #ffffff;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.25);
+}
+
+.clue-label {
+  font-weight: 700;
+  margin-right: 6px;
+  color: #ffd700;
+}
+
+.overlay-clue #milestoneClue {
+  font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
 @media (max-width: 600px) {
