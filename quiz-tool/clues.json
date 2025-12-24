@@ -6,11 +6,11 @@
     },
     {
       "threshold": 15,
-      "clue": "Tämä lahja on kylmässä, koska se voi lämmittää sitä, joka sen löytää."
+      "clue": "Tämä lahja lämmittää sitä, joka sen löytää. Missä pimeässä lämpimät kohtaavat?"
     },
     {
       "threshold": 22,
-      "clue": "Kauneutta voi lisätä monella tavalla, tämä lahja on ystäviensä kanssa piilossa."
+      "clue": "Kauneutta voi ehostaa monella tavalla, tämä lahja on ystäviensä kanssa piilossa."
     }
   ],
   "completionClue": {
