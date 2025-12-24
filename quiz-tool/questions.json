@@ -382,7 +382,7 @@
       "id": 29,
       "category": "geography",
       "categoryName": "Maantieto",
-      "question": "Mikä maanosa Suomi kuuluu?",
+      "question": "Mihin maanosaan Suomi kuuluu?",
       "type": "multiple",
       "options": [
         "Eurooppa",
