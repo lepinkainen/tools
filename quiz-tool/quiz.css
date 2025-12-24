@@ -216,17 +216,22 @@ h1 {
 }
 
 .elf-box {
-  margin-top: 15px;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  max-width: 320px;
   padding: 15px 20px;
   border-radius: 12px;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(0, 0, 0, 0.85);
   border: 2px solid #228b22;
   color: #ffffff;
   display: flex;
   gap: 12px;
   align-items: center;
   min-height: 60px;
-  box-shadow: 0 0 15px rgba(34, 139, 34, 0.3);
+  box-shadow: 0 0 20px rgba(34, 139, 34, 0.5);
+  z-index: 2000;
+  transition: all 0.3s ease;
 }
 
 .elf-name {
@@ -433,6 +438,12 @@ h1 {
   letter-spacing: 0.5px;
 }
 
+/* Adjust elf box when debug panel is visible */
+#debugPanel:not([style*="display: none"]) ~ .quiz-container ~ .elf-box,
+body:has(#debugPanel:not([style*="display: none"])) .elf-box {
+  bottom: 180px;
+}
+
 @media (max-width: 600px) {
   .question-text {
     font-size: 1.2em;
@@ -441,5 +452,17 @@ h1 {
   .option-btn {
     padding: 12px 15px;
     font-size: 1em;
+  }
+
+  .elf-box {
+    max-width: min(280px, 90vw);
+    padding: 12px 15px;
+    font-size: 0.9em;
+    bottom: 15px;
+    right: 15px;
+  }
+
+  .elf-name {
+    font-size: 0.9em;
   }
 }
