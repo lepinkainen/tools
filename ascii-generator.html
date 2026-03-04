@@ -14,7 +14,8 @@
 const { useState, useCallback, useEffect, useRef } = React;
 const CHAR_SETS = {
 standard: " .:-=+*#%@",
-detailed: " .'`^,:;Il!i><~+_-?][}{1)(|tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$",
+edges: " .:-=+*/\\|_(){}[]<>#%@",
+detailed: " .'`^,:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$",
 blocks: " \u2591\u2592\u2593\u2588",
 minimal: " .oO@",
 binary: " \u2588",
@@ -31,6 +32,118 @@ pink: { bg: "#1a000d", fg: "#ff69b4", name: "Hot Pink" },
 color: { bg: "#0a0a0a", fg: null, name: "Full Color" },
 };
 const CA = 0.55;
+// --- Shape-aware ASCII rendering engine ---
+const CELL_PX = 8;
+const SAMPLE_POS = [
+  {x:0.25,y:0.15},{x:0.75,y:0.15},
+  {x:0.10,y:0.50},{x:0.90,y:0.50},
+  {x:0.25,y:0.85},{x:0.75,y:0.85},
+];
+const EXT_SAMPLE_POS = [
+  {x:0.5,y:-0.2},{x:0.5,y:1.2},{x:-0.2,y:0.5},{x:1.2,y:0.5},
+];
+const SAMPLE_R = 0.22;
+const CHAR_RENDER_W = 16;
+const CHAR_RENDER_H = Math.round(16 / CA);
+
+function precomputeCharVectors(chars) {
+  const cw = CHAR_RENDER_W, ch = CHAR_RENDER_H;
+  const cv = document.createElement("canvas");
+  cv.width = cw; cv.height = ch;
+  const cx = cv.getContext("2d", {willReadFrequently:true});
+  const r = SAMPLE_R * Math.min(cw, ch);
+  const r2 = r * r;
+  return [...chars].map(c => {
+    cx.clearRect(0, 0, cw, ch);
+    cx.fillStyle = "#fff";
+    cx.font = (ch - 2) + 'px "Courier New",monospace';
+    cx.textAlign = "center"; cx.textBaseline = "middle";
+    cx.fillText(c, cw / 2, ch / 2);
+    const d = cx.getImageData(0, 0, cw, ch).data;
+    const v = SAMPLE_POS.map(p => {
+      let sum = 0, cnt = 0;
+      const px = p.x * cw, py = p.y * ch;
+      for (let y = Math.max(0, Math.floor(py - r)); y <= Math.min(ch - 1, Math.ceil(py + r)); y++)
+        for (let x = Math.max(0, Math.floor(px - r)); x <= Math.min(cw - 1, Math.ceil(px + r)); x++)
+          if ((x - px) ** 2 + (y - py) ** 2 <= r2) { sum += d[(y * cw + x) * 4]; cnt++; }
+      return cnt > 0 ? sum / (cnt * 255) : 0;
+    });
+    return {ch: c, vector: v};
+  });
+}
+
+let _cvCache = {key: "", vectors: [], tree: null};
+function getCharVectorsAndTree(chars) {
+  if (_cvCache.key === chars) return _cvCache;
+  const vectors = precomputeCharVectors(chars);
+  _cvCache = {key: chars, vectors, tree: new KDTree([...vectors])};
+  return _cvCache;
+}
+
+class KDTree {
+  constructor(pts, depth = 0) {
+    if (!pts.length) { this.pt = null; return; }
+    const k = pts[0].vector.length, ax = depth % k;
+    pts.sort((a, b) => a.vector[ax] - b.vector[ax]);
+    const m = pts.length >> 1;
+    this.pt = pts[m]; this.ax = ax;
+    this.l = new KDTree(pts.slice(0, m), depth + 1);
+    this.r = new KDTree(pts.slice(m + 1), depth + 1);
+  }
+  nearest(q, best = null, bd = Infinity) {
+    if (!this.pt) return {point: best, dist: bd};
+    let d = 0;
+    for (let i = 0; i < q.length; i++) d += (this.pt.vector[i] - q[i]) ** 2;
+    if (d < bd) { best = this.pt; bd = d; }
+    const df = q[this.ax] - this.pt.vector[this.ax];
+    const [f, s] = df < 0 ? [this.l, this.r] : [this.r, this.l];
+    ({point: best, dist: bd} = f.nearest(q, best, bd));
+    if (df * df < bd) ({point: best, dist: bd} = s.nearest(q, best, bd));
+    return {point: best, dist: bd};
+  }
+}
+
+function vecCacheKey(v) {
+  let k = 0;
+  for (let i = 0; i < v.length; i++) k = (k << 5) | (Math.min(31, Math.max(0, Math.round(v[i] * 31))) & 0x1f);
+  return k;
+}
+
+function sampleCircle(data, iw, ih, cx, cy, r) {
+  const r2 = r * r;
+  let sum = 0, cnt = 0;
+  const x0 = Math.max(0, Math.floor(cx - r)), x1 = Math.min(iw - 1, Math.ceil(cx + r));
+  const y0 = Math.max(0, Math.floor(cy - r)), y1 = Math.min(ih - 1, Math.ceil(cy + r));
+  for (let y = y0; y <= y1; y++)
+    for (let x = x0; x <= x1; x++)
+      if ((x - cx) ** 2 + (y - cy) ** 2 <= r2) {
+        const i = (y * iw + x) * 4;
+        sum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        cnt++;
+      }
+  return cnt > 0 ? sum / (cnt * 255) : 0;
+}
+
+function sampleCellColor(data, iw, ox, oy, cw, ch) {
+  let r = 0, g = 0, b = 0, cnt = 0;
+  const ih = Math.floor(data.length / (iw * 4));
+  const x1 = Math.min(Math.ceil(ox + cw), iw);
+  const y1 = Math.min(Math.ceil(oy + ch), ih);
+  for (let y = Math.floor(oy); y < y1; y++)
+    for (let x = Math.floor(ox); x < x1; x++) {
+      const i = (y * iw + x) * 4;
+      r += data[i]; g += data[i + 1]; b += data[i + 2]; cnt++;
+    }
+  if (!cnt) return {r: 0, g: 0, b: 0};
+  return {r: Math.round(r / cnt), g: Math.round(g / cnt), b: Math.round(b / cnt)};
+}
+
+function enhanceGlobalContrast(vec, power) {
+  const mx = Math.max(...vec, 0.001);
+  return vec.map(v => Math.pow(v / mx, power) * mx);
+}
+// --- End shape-aware engine ---
+
 function App() {
 const [imageSrc, setImageSrc] = useState(null);
 const [imgNat, setImgNat] = useState({w:1,h:1});
@@ -40,6 +153,7 @@ const [customChars, setCustomChars] = useState(" .:-=+*#%@");
 const [settings, setSettings] = useState({
 width: 120, charSet: "standard", theme: "terminal",
 invert: false, contrast: 1.0, brightness: 0,
+renderMode: "shape", blurRadius: 1.0, enhancePower: 2.0, dirContrast: true,
   });
 const [dragOver, setDragOver] = useState(false);
 const [processing, setProcessing] = useState(false);
@@ -61,8 +175,6 @@ return new Promise((resolve, reject) => {
 const img = new Image();
 img.onload = () => {
 try {
-const c = document.createElement("canvas");
-const ctx = c.getContext("2d");
 let sx=0, sy=0, sw=img.width, sh=img.height;
 if (cropArea) {
 sx = Math.round(cropArea.x * img.width);
@@ -70,31 +182,88 @@ sy = Math.round(cropArea.y * img.height);
 sw = Math.round(cropArea.w * img.width);
 sh = Math.round(cropArea.h * img.height);
           }
-const w = s.width;
-const h = Math.round((sh / sw) * w * CA);
-c.width = w; c.height = h;
-ctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
-const d = ctx.getImageData(0, 0, w, h).data;
-const ch = s.charSet === "custom" ? (s.cc && s.cc.length >= 2 ? s.cc : " @") : CHAR_SETS[s.charSet];
+const cols = s.width;
+const chars = s.charSet === "custom" ? (s.cc && s.cc.length >= 2 ? s.cc : " @") : CHAR_SETS[s.charSet];
 const isC = s.theme === "color";
-const lines = [];
-for (let y = 0; y < h; y++) {
-const line = [];
-for (let x = 0; x < w; x++) {
-const i = (y * w + x) * 4;
-let r = Math.min(255, Math.max(0, (d[i] + s.brightness) * s.contrast));
-let g = Math.min(255, Math.max(0, (d[i+1] + s.brightness) * s.contrast));
-let b = Math.min(255, Math.max(0, (d[i+2] + s.brightness) * s.contrast));
-const gr = 0.299*r + 0.587*g + 0.114*b;
-let idx = Math.round((gr/255) * (ch.length-1));
-if (s.invert) idx = ch.length - 1 - idx;
-const chr = ch[idx];
-if (isC && chr !== " ") line.push({ch:chr, color:"rgb("+Math.round(r)+","+Math.round(g)+","+Math.round(b)+")"});
-else line.push({ch:chr, color:null});
-            }
-lines.push(line);
-          }
-resolve(lines);
+if (s.renderMode === "classic") {
+  // Classic per-pixel brightness mapping
+  const c = document.createElement("canvas");
+  const ctx = c.getContext("2d");
+  const h = Math.round((sh / sw) * cols * CA);
+  c.width = cols; c.height = h;
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, cols, h);
+  const d = ctx.getImageData(0, 0, cols, h).data;
+  const lines = [];
+  for (let y = 0; y < h; y++) {
+    const line = [];
+    for (let x = 0; x < cols; x++) {
+      const i = (y * cols + x) * 4;
+      let r = Math.min(255, Math.max(0, (d[i] + s.brightness) * s.contrast));
+      let g = Math.min(255, Math.max(0, (d[i+1] + s.brightness) * s.contrast));
+      let b = Math.min(255, Math.max(0, (d[i+2] + s.brightness) * s.contrast));
+      const gr = 0.299*r + 0.587*g + 0.114*b;
+      let idx = Math.round((gr/255) * (chars.length-1));
+      if (s.invert) idx = chars.length - 1 - idx;
+      const chr = chars[idx];
+      if (isC && chr !== " ") line.push({ch:chr, color:"rgb("+Math.round(r)+","+Math.round(g)+","+Math.round(b)+")"});
+      else line.push({ch:chr, color:null});
+    }
+    lines.push(line);
+  }
+  resolve(lines);
+} else {
+  // Shape-aware rendering with 6D vectors
+  const rows = Math.round((sh / sw) * cols * CA);
+  const cellW = CELL_PX, cellH = Math.round(CELL_PX / CA);
+  const cW = cols * cellW, cH = rows * cellH;
+  const c = document.createElement("canvas");
+  const ctx = c.getContext("2d", {willReadFrequently: true});
+  c.width = cW; c.height = cH;
+  // Gaussian pre-blur
+  if (s.blurRadius > 0) ctx.filter = "blur(" + s.blurRadius + "px)";
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, cW, cH);
+  ctx.filter = "none";
+  const d = ctx.getImageData(0, 0, cW, cH).data;
+  const {tree} = getCharVectorsAndTree(chars);
+  const cache = new Map();
+  const sr = SAMPLE_R * Math.min(cellW, cellH);
+  const lines = [];
+  for (let row = 0; row < rows; row++) {
+    const line = [];
+    for (let col = 0; col < cols; col++) {
+      const ox = col * cellW, oy = row * cellH;
+      // Compute 6D sampling vector
+      let vec = SAMPLE_POS.map(p => sampleCircle(d, cW, cH, ox + p.x * cellW, oy + p.y * cellH, sr));
+      // Apply brightness/contrast
+      vec = vec.map(v => { v = (v * 255 + s.brightness) * s.contrast / 255; return Math.max(0, Math.min(1, v)); });
+      // Global contrast enhancement
+      if (s.enhancePower > 1.0) vec = enhanceGlobalContrast(vec, s.enhancePower);
+      // Directional contrast enhancement
+      if (s.dirContrast) {
+        const extVals = EXT_SAMPLE_POS.map(p => sampleCircle(d, cW, cH, ox + p.x * cellW, oy + p.y * cellH, sr));
+        const extAvg = extVals.reduce((a, v) => a + v, 0) / extVals.length;
+        vec = vec.map(v => Math.max(0, Math.min(1, v + (v - extAvg) * 0.3)));
+      }
+      // Invert
+      if (s.invert) vec = vec.map(v => 1 - v);
+      // k-d tree lookup with cache
+      const key = vecCacheKey(vec);
+      let chr;
+      if (cache.has(key)) chr = cache.get(key);
+      else { chr = tree.nearest(vec).point.ch; cache.set(key, chr); }
+      // Color mode
+      if (isC && chr !== " ") {
+        const clr = sampleCellColor(d, cW, ox, oy, cellW, cellH);
+        let r = Math.min(255, Math.max(0, (clr.r + s.brightness) * s.contrast));
+        let g = Math.min(255, Math.max(0, (clr.g + s.brightness) * s.contrast));
+        let b = Math.min(255, Math.max(0, (clr.b + s.brightness) * s.contrast));
+        line.push({ch: chr, color: "rgb(" + Math.round(r) + "," + Math.round(g) + "," + Math.round(b) + ")"});
+      } else line.push({ch: chr, color: null});
+    }
+    lines.push(line);
+  }
+  resolve(lines);
+}
         } catch(e) { reject(e); }
       };
 img.onerror = () => reject(new Error("Load failed"));
@@ -351,6 +520,33 @@ style={{border:"2px dashed "+(dragOver?"#a78bfa":"#3f3f46"),borderRadius:10,padd
 <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><label style={lbl}>Brightness</label><span style={val2}>{settings.brightness}</span></div>
 <input type="range" min={-100} max={100} step={5} value={settings.brightness} onChange={e=>setSettings(s=>({...s,brightness:+e.target.value}))}/>
 </div>
+<div>
+<label style={{...lbl,display:"block",marginBottom:8}}>Rendering Mode</label>
+<div style={{display:"flex",gap:4}}>
+{["classic","shape"].map(mode=>(
+<div key={mode} className={"cb "+(settings.renderMode===mode?"a":"")} onClick={()=>setSettings(s=>({...s,renderMode:mode}))}
+style={{flex:1,padding:"8px 12px",borderRadius:6,fontSize:11,textAlign:"center",background:settings.renderMode===mode?undefined:"transparent",color:settings.renderMode===mode?undefined:"#a1a1aa"}}>
+<span style={{fontWeight:500}}>{mode==="shape"?"Shape-aware":"Classic"}</span>
+</div>
+))}
+</div>
+</div>
+{settings.renderMode==="shape"&&(<>
+<div>
+<div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><label style={lbl}>Blur</label><span style={val2}>{settings.blurRadius.toFixed(1)}px</span></div>
+<input type="range" min={0} max={3} step={0.1} value={settings.blurRadius} onChange={e=>setSettings(s=>({...s,blurRadius:+e.target.value}))}/>
+</div>
+<div>
+<div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><label style={lbl}>Edge Enhance</label><span style={val2}>{settings.enhancePower.toFixed(1)}x</span></div>
+<input type="range" min={1} max={4} step={0.1} value={settings.enhancePower} onChange={e=>setSettings(s=>({...s,enhancePower:+e.target.value}))}/>
+</div>
+<div onClick={()=>setSettings(s=>({...s,dirContrast:!s.dirContrast}))} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"#18181b",borderRadius:8,cursor:"pointer"}}>
+<span style={{fontSize:12,color:"#a1a1aa"}}>Directional Contrast</span>
+<div style={{width:36,height:20,borderRadius:10,background:settings.dirContrast?"#a78bfa":"#3f3f46",position:"relative",transition:"background .2s"}}>
+<div style={{width:16,height:16,borderRadius:"50%",background:"#fff",position:"absolute",top:2,left:settings.dirContrast?18:2,transition:"left .2s"}}/>
+</div>
+</div>
+</>)}
 <div onClick={()=>setSettings(s=>({...s,invert:!s.invert}))} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"#18181b",borderRadius:8,cursor:"pointer"}}>
 <span style={{fontSize:12,color:"#a1a1aa"}}>Invert Characters</span>
 <div style={{width:36,height:20,borderRadius:10,background:settings.invert?"#a78bfa":"#3f3f46",position:"relative",transition:"background .2s"}}>
