@@ -123,6 +123,13 @@ def build_site():
                 "</head>", '  <link rel="icon" href="../favicon.ico" />\n  </head>'
             )
 
+        # Inject the theme switcher script before </body>
+        if "theme-switcher.js" not in html_content:
+            html_content = html_content.replace(
+                "</body>",
+                '  <script src="../static/theme-switcher.js"></script>\n  </body>',
+            )
+
         # Write to dist/toolname/index.html
         (tool_dir / "index.html").write_text(html_content, encoding="utf-8")
 
