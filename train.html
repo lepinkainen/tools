@@ -361,6 +361,42 @@
             TU: 'Turenki'
         };
 
+        // Station coordinates for geolocation-based ordering
+        const STATION_COORDS = {
+            JP: { lat: 60.4718, lon: 25.0889 },  // Järvenpää
+            HKI: { lat: 60.1719, lon: 24.9414 }   // Helsinki
+        };
+
+        function getDistance(lat1, lon1, lat2, lon2) {
+            // Simple Euclidean approximation (good enough for nearby points)
+            const dLat = lat1 - lat2;
+            const dLon = (lon1 - lon2) * Math.cos((lat1 + lat2) / 2 * Math.PI / 180);
+            return Math.sqrt(dLat * dLat + dLon * dLon);
+        }
+
+        function reorderStationsByLocation() {
+            if (!navigator.geolocation) return;
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const { latitude, longitude } = position.coords;
+                    const distJP = getDistance(latitude, longitude, STATION_COORDS.JP.lat, STATION_COORDS.JP.lon);
+                    const distHKI = getDistance(latitude, longitude, STATION_COORDS.HKI.lat, STATION_COORDS.HKI.lon);
+
+                    if (distHKI < distJP) {
+                        // Helsinki is closer — move it before Järvenpää
+                        const main = document.querySelector('main');
+                        const helsinkiSection = document.getElementById('helsinki-section');
+                        const jarvenpaaSection = document.getElementById('jarvenpaa-section');
+                        main.insertBefore(helsinkiSection, jarvenpaaSection);
+                    }
+                },
+                () => {
+                    // Geolocation denied or failed — keep default order (Järvenpää first)
+                }
+            );
+        }
+
         let debugVisible = false;
 
         function toggleDebug() {
@@ -522,6 +558,9 @@
                 refreshBtn.disabled = false;
             }
         }
+
+        // Reorder stations based on user's location
+        reorderStationsByLocation();
 
         // Initial load
         fetchAllData();
