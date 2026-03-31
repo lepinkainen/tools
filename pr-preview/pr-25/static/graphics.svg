@@ -1,0 +1,199 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <defs>
+    <!-- Neon glow filters -->
+    <filter id="neon-glow-magenta">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="neon-glow-cyan">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Circuit corner decorations -->
+    <symbol id="circuit-corner-tl" viewBox="0 0 60 60">
+      <g stroke="#00d9ff" stroke-width="1.5" fill="none" opacity="0.6">
+        <line x1="0" y1="30" x2="20" y2="30"/>
+        <line x1="20" y1="30" x2="20" y2="10"/>
+        <line x1="20" y1="10" x2="40" y2="10"/>
+        <circle cx="20" cy="30" r="2" fill="#00d9ff"/>
+        <circle cx="20" cy="10" r="2" fill="#00d9ff"/>
+        <line x1="30" y1="0" x2="30" y2="20"/>
+        <line x1="30" y1="20" x2="50" y2="20"/>
+        <circle cx="30" cy="20" r="2" fill="#ff1493"/>
+      </g>
+    </symbol>
+
+    <symbol id="circuit-corner-tr" viewBox="0 0 60 60">
+      <g stroke="#00d9ff" stroke-width="1.5" fill="none" opacity="0.6">
+        <line x1="60" y1="30" x2="40" y2="30"/>
+        <line x1="40" y1="30" x2="40" y2="10"/>
+        <line x1="40" y1="10" x2="20" y2="10"/>
+        <circle cx="40" cy="30" r="2" fill="#00d9ff"/>
+        <circle cx="40" cy="10" r="2" fill="#00d9ff"/>
+        <line x1="30" y1="0" x2="30" y2="20"/>
+        <line x1="30" y1="20" x2="10" y2="20"/>
+        <circle cx="30" cy="20" r="2" fill="#ff1493"/>
+      </g>
+    </symbol>
+
+    <symbol id="circuit-corner-bl" viewBox="0 0 60 60">
+      <g stroke="#00d9ff" stroke-width="1.5" fill="none" opacity="0.6">
+        <line x1="0" y1="30" x2="20" y2="30"/>
+        <line x1="20" y1="30" x2="20" y2="50"/>
+        <line x1="20" y1="50" x2="40" y2="50"/>
+        <circle cx="20" cy="30" r="2" fill="#00d9ff"/>
+        <circle cx="20" cy="50" r="2" fill="#00d9ff"/>
+        <line x1="30" y1="60" x2="30" y2="40"/>
+        <line x1="30" y1="40" x2="50" y2="40"/>
+        <circle cx="30" cy="40" r="2" fill="#ff1493"/>
+      </g>
+    </symbol>
+
+    <symbol id="circuit-corner-br" viewBox="0 0 60 60">
+      <g stroke="#00d9ff" stroke-width="1.5" fill="none" opacity="0.6">
+        <line x1="60" y1="30" x2="40" y2="30"/>
+        <line x1="40" y1="30" x2="40" y2="50"/>
+        <line x1="40" y1="50" x2="20" y2="50"/>
+        <circle cx="40" cy="30" r="2" fill="#00d9ff"/>
+        <circle cx="40" cy="50" r="2" fill="#00d9ff"/>
+        <line x1="30" y1="60" x2="30" y2="40"/>
+        <line x1="30" y1="40" x2="10" y2="40"/>
+        <circle cx="30" cy="40" r="2" fill="#ff1493"/>
+      </g>
+    </symbol>
+
+    <!-- Loading spinner (hexagon with trail) -->
+    <symbol id="loading-spinner" viewBox="0 0 50 50">
+      <g stroke-width="2" fill="none">
+        <!-- Hexagon outline -->
+        <path d="M 25 5 L 43 15 L 43 35 L 25 45 L 7 35 L 7 15 Z"
+              stroke="#00d9ff"
+              opacity="0.3"/>
+
+        <!-- Animated arc -->
+        <path d="M 25 5 L 43 15 L 43 35"
+              stroke="#ff1493"
+              stroke-linecap="round"
+              filter="url(#neon-glow-magenta)">
+          <animate attributeName="opacity"
+                   values="1;0.3;1"
+                   dur="1.5s"
+                   repeatCount="indefinite"/>
+        </path>
+      </g>
+    </symbol>
+
+    <!-- Terminal prompt chevron -->
+    <symbol id="prompt-chevron" viewBox="0 0 20 20">
+      <path d="M 5 5 L 15 10 L 5 15"
+            stroke="#ff1493"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            fill="none"
+            filter="url(#neon-glow-magenta)"/>
+    </symbol>
+
+    <!-- Glitch divider -->
+    <symbol id="glitch-divider" viewBox="0 0 400 20" preserveAspectRatio="none">
+      <g stroke-width="2" fill="none">
+        <line x1="0" y1="10" x2="120" y2="10" stroke="#00d9ff" opacity="0.6"/>
+        <line x1="122" y1="8" x2="160" y2="8" stroke="#ff1493" opacity="0.8"/>
+        <line x1="162" y1="12" x2="200" y2="12" stroke="#ff1493" opacity="0.8"/>
+        <line x1="202" y1="10" x2="240" y2="10" stroke="#00d9ff" opacity="0.6"/>
+        <line x1="242" y1="6" x2="280" y2="6" stroke="#ff1493" opacity="0.8"/>
+        <line x1="282" y1="10" x2="400" y2="10" stroke="#00d9ff" opacity="0.6"/>
+      </g>
+    </symbol>
+
+    <!-- Tool icons -->
+    <symbol id="icon-joiner" viewBox="0 0 40 40">
+      <g stroke="#00d9ff" stroke-width="2" fill="none">
+        <rect x="2" y="10" width="15" height="20"/>
+        <rect x="23" y="10" width="15" height="20"/>
+        <line x1="19" y1="20" x2="21" y2="20" stroke="#ff1493" stroke-width="3"/>
+      </g>
+    </symbol>
+
+    <symbol id="icon-collage" viewBox="0 0 40 40">
+      <g stroke="#00d9ff" stroke-width="2" fill="none">
+        <rect x="5" y="5" width="12" height="12"/>
+        <rect x="23" y="5" width="12" height="12"/>
+        <rect x="5" y="23" width="12" height="12"/>
+        <rect x="23" y="23" width="12" height="12"/>
+      </g>
+    </symbol>
+
+    <!-- Wireframe grid (for hero section) -->
+    <symbol id="wireframe-grid" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <linearGradient id="grid-fade" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#00d9ff;stop-opacity:0"/>
+          <stop offset="50%" style="stop-color:#00d9ff;stop-opacity:0.3"/>
+          <stop offset="100%" style="stop-color:#00d9ff;stop-opacity:0"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Horizontal lines with perspective -->
+      <g stroke="url(#grid-fade)" stroke-width="1" fill="none">
+        <line x1="0" y1="200" x2="800" y2="200"/>
+        <line x1="50" y1="220" x2="750" y2="220"/>
+        <line x1="100" y1="240" x2="700" y2="240"/>
+        <line x1="150" y1="260" x2="650" y2="260"/>
+        <line x1="200" y1="280" x2="600" y2="280"/>
+        <line x1="250" y1="300" x2="550" y2="300"/>
+        <line x1="300" y1="320" x2="500" y2="320"/>
+      </g>
+
+      <!-- Vertical lines -->
+      <g stroke="#ff1493" stroke-width="1" fill="none" opacity="0.2">
+        <line x1="200" y1="200" x2="250" y2="320"/>
+        <line x1="300" y1="200" x2="325" y2="320"/>
+        <line x1="400" y1="200" x2="400" y2="320"/>
+        <line x1="500" y1="200" x2="475" y2="320"/>
+        <line x1="600" y1="200" x2="550" y2="320"/>
+      </g>
+    </symbol>
+
+    <!-- Scan lines -->
+    <symbol id="scan-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
+      <g stroke="#00d9ff" stroke-width="0.5" opacity="0.15">
+        <line x1="0" y1="0" x2="100" y2="0"/>
+        <line x1="0" y1="5" x2="100" y2="5"/>
+        <line x1="0" y1="10" x2="100" y2="10"/>
+        <line x1="0" y1="15" x2="100" y2="15"/>
+        <line x1="0" y1="20" x2="100" y2="20"/>
+        <line x1="0" y1="25" x2="100" y2="25"/>
+        <line x1="0" y1="30" x2="100" y2="30"/>
+        <line x1="0" y1="35" x2="100" y2="35"/>
+        <line x1="0" y1="40" x2="100" y2="40"/>
+        <line x1="0" y1="45" x2="100" y2="45"/>
+        <line x1="0" y1="50" x2="100" y2="50"/>
+        <line x1="0" y1="55" x2="100" y2="55"/>
+        <line x1="0" y1="60" x2="100" y2="60"/>
+        <line x1="0" y1="65" x2="100" y2="65"/>
+        <line x1="0" y1="70" x2="100" y2="70"/>
+        <line x1="0" y1="75" x2="100" y2="75"/>
+        <line x1="0" y1="80" x2="100" y2="80"/>
+        <line x1="0" y1="85" x2="100" y2="85"/>
+        <line x1="0" y1="90" x2="100" y2="90"/>
+        <line x1="0" y1="95" x2="100" y2="95"/>
+        <line x1="0" y1="100" x2="100" y2="100"/>
+      </g>
+    </symbol>
+
+    <!-- Data stream particles -->
+    <symbol id="data-particle" viewBox="0 0 10 10">
+      <circle cx="5" cy="5" r="2" fill="#00d9ff" opacity="0.4"/>
+      <circle cx="5" cy="5" r="1" fill="#00d9ff"/>
+    </symbol>
+  </defs>
+</svg>
