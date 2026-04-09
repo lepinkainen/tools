@@ -90,11 +90,11 @@
 
         .train-row {
             display: grid;
-            grid-template-columns: 60px 1fr 80px 50px;
+            grid-template-columns: 120px 1fr 50px;
             padding: 0.75rem 1rem;
             border-bottom: 1px solid #1a1a2e;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.75rem;
         }
 
         .train-row:last-child {
@@ -109,15 +109,25 @@
             font-size: 1.25rem;
             font-weight: 600;
             font-variant-numeric: tabular-nums;
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+            line-height: 1.1;
+            white-space: nowrap;
+        }
+
+        .train-time-original {
+            font-size: 0.9rem;
+            opacity: 0.7;
+            text-decoration: line-through;
+        }
+
+        .train-time-adjusted {
+            color: #fbbf24;
         }
 
         .train-destination {
             font-size: 0.95rem;
-        }
-
-        .train-status {
-            text-align: right;
-            font-size: 0.85rem;
         }
 
         .train-track {
@@ -127,14 +137,6 @@
             border-radius: 4px;
             font-weight: 600;
             font-size: 0.9rem;
-        }
-
-        .on-time {
-            color: #4ade80;
-        }
-
-        .delayed {
-            color: #f87171;
         }
 
         .cancelled {
@@ -180,7 +182,7 @@
             }
 
             .train-row {
-                grid-template-columns: 70px 1fr 90px 50px;
+                grid-template-columns: 150px 1fr 50px;
             }
         }
 
@@ -289,7 +291,6 @@
         <section class="station-section" id="jarvenpaa-section">
             <div class="station-header">
                 <span>Järvenpää</span>
-                <span class="direction">→ Helsinki</span>
             </div>
             <div class="train-list" id="jarvenpaa-trains">
                 <div class="loading">Ladataan...</div>
@@ -299,7 +300,6 @@
         <section class="station-section" id="helsinki-section">
             <div class="station-header">
                 <span>Helsinki</span>
-                <span class="direction">→ Riihimäki</span>
             </div>
             <div class="train-list" id="helsinki-trains">
                 <div class="loading">Ladataan...</div>
@@ -403,6 +403,9 @@
             debugVisible = !debugVisible;
             document.getElementById('debug-section').classList.toggle('visible', debugVisible);
             document.getElementById('debugBtn').classList.toggle('active', debugVisible);
+            document.querySelectorAll('.debug-panel').forEach(panel => {
+                panel.classList.toggle('visible', debugVisible);
+            });
         }
 
         function formatTime(isoString) {
@@ -414,11 +417,18 @@
             });
         }
 
+        function getAdjustedTime(isoString, delayMinutes) {
+            const date = new Date(isoString);
+            date.setMinutes(date.getMinutes() + delayMinutes);
+            return date.toISOString();
+        }
+
         function getDestinationName(code) {
             return STATION_NAMES[code] || code;
         }
 
-        function renderTrains(trains, stationCode, elementId, debugId, limit = 10) {
+        function renderTrains(trains, stationCode, elementId, debugId, options = {}) {
+            const { limit = 10, includePastTrain = true } = options;
             const container = document.getElementById(elementId);
             const debugPanel = document.getElementById(debugId);
 
@@ -482,13 +492,14 @@
             const futureTrains = allDepartures.filter(d => d.effectiveDeparture > now && !d.cancelled);
             const pastTrains = allDepartures.filter(d => d.effectiveDeparture <= now && !d.cancelled);
 
-            // Take the last past train (most recent departure) and up to 10 future trains
+            // Take the last past train (most recent departure) and up to limit future trains
             const lastPastTrain = pastTrains.length > 0 ? pastTrains[pastTrains.length - 1] : null;
-            const displayFuture = futureTrains.slice(0, limit);
+            const futureLimit = includePastTrain && lastPastTrain ? Math.max(limit - 1, 0) : limit;
+            const displayFuture = futureTrains.slice(0, futureLimit);
 
             // Build display list
             const displayTrains = [];
-            if (lastPastTrain) {
+            if (includePastTrain && lastPastTrain) {
                 displayTrains.push({ ...lastPastTrain, isPast: true });
             }
             displayFuture.forEach(d => displayTrains.push({ ...d, isPast: false }));
@@ -500,37 +511,60 @@
 
             container.innerHTML = displayTrains.map(dep => {
                 const pastClass = dep.isPast ? ' past-train' : '';
-                const statusClass = dep.cancelled ? 'cancelled' : (dep.delay > 0 ? 'delayed' : 'on-time');
-                const statusText = dep.cancelled ? 'Peruttu' :
-                                   (dep.delay > 0 ? `+${dep.delay} min` : 'Ajallaan');
+                const adjustedTime = dep.delay > 0 ? formatTime(getAdjustedTime(dep.scheduledTime, dep.delay)) : null;
+                const timeHtml = adjustedTime
+                    ? `<span class="train-time-original">${formatTime(dep.scheduledTime)}</span><span class="train-time-adjusted">${adjustedTime}</span>`
+                    : formatTime(dep.scheduledTime);
 
                 return `
                     <div class="train-row${pastClass}">
-                        <div class="train-time">${formatTime(dep.scheduledTime)}</div>
+                        <div class="train-time">${timeHtml}</div>
                         <div class="train-destination">${getDestinationName(dep.destination)}</div>
-                        <div class="train-status ${statusClass}">${statusText}</div>
                         <div class="train-track">${dep.track}</div>
                     </div>
                 `;
             }).join('');
         }
 
-        async function fetchStationData(stationCode) {
-            // Request more departing trains to ensure we get enough R-trains
-            // especially for Helsinki which has many commuter lines
-            const url = `${API_BASE}/live-trains/station/${stationCode}?train_categories=Commuter&departing_trains=30&departed_trains=5`;
+        function countRDepartures(trains, stationCode) {
+            return trains.filter(train => {
+                if (train.commuterLineID !== 'R' || train.cancelled) return false;
 
-            const response = await fetch(url, {
-                headers: {
-                    'Accept-Encoding': 'gzip'
+                return train.timeTableRows.some(row =>
+                    row.stationShortCode === stationCode &&
+                    row.type === 'DEPARTURE' &&
+                    row.commercialStop &&
+                    !row.cancelled
+                );
+            }).length;
+        }
+
+        async function fetchStationData(stationCode, minRTrains = 0) {
+            // Request more departures for busy stations until we have enough R-trains.
+            const departingOptions = [30, 60, 90, 120, 180];
+            let lastData = [];
+
+            for (const departingTrains of departingOptions) {
+                const url = `${API_BASE}/live-trains/station/${stationCode}?train_categories=Commuter&departing_trains=${departingTrains}&departed_trains=5`;
+
+                const response = await fetch(url, {
+                    headers: {
+                        'Accept-Encoding': 'gzip'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-            });
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                lastData = await response.json();
+
+                if (countRDepartures(lastData, stationCode) >= minRTrains) {
+                    break;
+                }
             }
 
-            return response.json();
+            return lastData;
         }
 
         async function fetchAllData() {
@@ -540,11 +574,11 @@
             try {
                 const [jpData, hkiData] = await Promise.all([
                     fetchStationData('JP'),
-                    fetchStationData('HKI')
+                    fetchStationData('HKI', 5)
                 ]);
 
-                renderTrains(jpData, 'JP', 'jarvenpaa-trains', 'debug-jarvenpaa', 5);
-                renderTrains(hkiData, 'HKI', 'helsinki-trains', 'debug-helsinki', 10);
+                renderTrains(jpData, 'JP', 'jarvenpaa-trains', 'debug-jarvenpaa', { limit: 5, includePastTrain: true });
+                renderTrains(hkiData, 'HKI', 'helsinki-trains', 'debug-helsinki', { limit: 5, includePastTrain: false });
 
                 document.getElementById('lastUpdate').textContent =
                     `Päivitetty: ${new Date().toLocaleTimeString('fi-FI', { timeZone: 'Europe/Helsinki' })}`;
