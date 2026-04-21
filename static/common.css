@@ -2,6 +2,7 @@
 
 /* Base styles */
 body {
+  color-scheme: dark;
   font-family: "Share Tech Mono", monospace;
   background: linear-gradient(
     135deg,
