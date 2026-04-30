@@ -99,7 +99,7 @@
 
         .train-row {
             display: grid;
-            grid-template-columns: 120px 1fr 50px;
+            grid-template-columns: 120px 1fr auto 50px;
             padding: 0.75rem 1rem;
             border-bottom: 1px solid #1a1a2e;
             align-items: center;
@@ -148,6 +148,18 @@
             font-size: 0.9rem;
         }
 
+        .train-position {
+            font-size: 0.8rem;
+            font-variant-numeric: tabular-nums;
+            text-align: right;
+            white-space: nowrap;
+            color: #888;
+        }
+
+        .train-position.near {
+            color: #4ade80;
+        }
+
         .cancelled {
             color: #f87171;
             text-decoration: line-through;
@@ -191,7 +203,7 @@
             }
 
             .train-row {
-                grid-template-columns: 150px 1fr 50px;
+                grid-template-columns: 150px 1fr auto 50px;
             }
         }
 
@@ -380,8 +392,18 @@
             HKI: { lat: 60.1719, lon: 24.9414 }   // Helsinki
         };
 
+        function haversineDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const toRad = deg => deg * Math.PI / 180;
+            const dLat = toRad(lat2 - lat1);
+            const dLon = toRad(lon2 - lon1);
+            const a = Math.sin(dLat / 2) ** 2 +
+                      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                      Math.sin(dLon / 2) ** 2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        }
+
         function getDistance(lat1, lon1, lat2, lon2) {
-            // Simple Euclidean approximation (good enough for nearby points)
             const dLat = lat1 - lat2;
             const dLon = (lon1 - lon2) * Math.cos((lat1 + lat2) / 2 * Math.PI / 180);
             return Math.sqrt(dLat * dLat + dLon * dLon);
@@ -408,6 +430,26 @@
                     // Geolocation denied or failed — keep default order (Järvenpää first)
                 }
             );
+        }
+
+        async function fetchTrainPositions() {
+            try {
+                const response = await fetch(`${API_BASE}/train-locations/latest/`, {
+                    headers: { 'Accept-Encoding': 'gzip' }
+                });
+                if (!response.ok) return {};
+                const data = await response.json();
+                const map = {};
+                for (const entry of data) {
+                    if (entry.trainNumber && entry.location?.coordinates) {
+                        const [lon, lat] = entry.location.coordinates;
+                        map[entry.trainNumber] = { lat, lon, speed: entry.speed ?? null };
+                    }
+                }
+                return map;
+            } catch {
+                return {};
+            }
         }
 
         let debugVisible = false;
@@ -448,7 +490,7 @@
             return STATION_NAMES[code] || code;
         }
 
-        function renderTrains(trains, stationCode, elementId, debugId, options = {}) {
+        function renderTrains(trains, stationCode, elementId, debugId, options = {}, trainPositions = {}) {
             const { limit = 10, includePastTrain = true } = options;
             const container = document.getElementById(elementId);
             const debugPanel = document.getElementById(debugId);
@@ -530,6 +572,18 @@
                 return;
             }
 
+            const stationCoords = STATION_COORDS[stationCode];
+
+            function formatPosition(trainNumber) {
+                const pos = trainPositions[trainNumber];
+                if (!pos) return { text: '--', near: false };
+                const km = haversineDistance(pos.lat, pos.lon, stationCoords.lat, stationCoords.lon);
+                if (km < 0.3) return { text: 'at station', near: true };
+                const arrow = pos.lat > stationCoords.lat ? '↑' : '↓';
+                const kmStr = km < 10 ? km.toFixed(1) : Math.round(km).toString();
+                return { text: `${arrow} ${kmStr}km`, near: km < 2 };
+            }
+
             container.innerHTML = displayTrains.map(dep => {
                 const pastClass = dep.isPast ? ' past-train' : '';
                 const adjustedTime = dep.delay > 0 ? formatTime(getAdjustedTime(dep.scheduledTime, dep.delay)) : null;
@@ -537,10 +591,14 @@
                     ? `<span class="train-time-original">${formatTime(dep.scheduledTime)}</span><span class="train-time-adjusted">${adjustedTime}</span>`
                     : formatTime(dep.scheduledTime);
 
+                const { text: posText, near: posNear } = formatPosition(dep.trainNumber);
+                const posClass = posNear ? ' near' : '';
+
                 return `
                     <div class="train-row${pastClass}">
                         <div class="train-time">${timeHtml}</div>
                         <div class="train-destination">${getDestinationName(dep.destination)}</div>
+                        <div class="train-position${posClass}">${posText}</div>
                         <div class="train-track">${dep.track}</div>
                     </div>
                 `;
@@ -593,13 +651,14 @@
             refreshBtn.disabled = true;
 
             try {
-                const [jpData, hkiData] = await Promise.all([
+                const [jpData, hkiData, trainPositions] = await Promise.all([
                     fetchStationData('JP'),
-                    fetchStationData('HKI', 5)
+                    fetchStationData('HKI', 5),
+                    fetchTrainPositions()
                 ]);
 
-                renderTrains(jpData, 'JP', 'jarvenpaa-trains', 'debug-jarvenpaa', { limit: 5, includePastTrain: true });
-                renderTrains(hkiData, 'HKI', 'helsinki-trains', 'debug-helsinki', { limit: 5, includePastTrain: false });
+                renderTrains(jpData, 'JP', 'jarvenpaa-trains', 'debug-jarvenpaa', { limit: 5, includePastTrain: true }, trainPositions);
+                renderTrains(hkiData, 'HKI', 'helsinki-trains', 'debug-helsinki', { limit: 5, includePastTrain: false }, trainPositions);
 
                 document.getElementById('updateInfo').textContent =
                     `Päivitetty: ${new Date().toLocaleTimeString('fi-FI', { timeZone: 'Europe/Helsinki' })}`;
