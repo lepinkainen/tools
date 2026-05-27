@@ -139,6 +139,12 @@
             font-size: 0.95rem;
         }
 
+        .accessibility-icon {
+            display: inline-block;
+            margin-left: 0.4rem;
+            font-size: 0.9rem;
+        }
+
         .train-track {
             text-align: center;
             background: #0f3460;
@@ -432,6 +438,59 @@
             );
         }
 
+        // Cache composition lookups for the lifetime of the page.
+        // Key: `${date}_${trainNumber}` → { accessible: boolean, wagonTypes: string[] } | null
+        const compositionCache = new Map();
+
+        // Sm1 and Sm2 are old high-floor units without step-free boarding.
+        const INACCESSIBLE_UNIT_TYPES = new Set(['Sm1', 'Sm2']);
+
+        async function fetchComposition(trainNumber, departureDate) {
+            const key = `${departureDate}_${trainNumber}`;
+            if (compositionCache.has(key)) return compositionCache.get(key);
+
+            try {
+                const response = await fetch(`${API_BASE}/compositions/${departureDate}/${trainNumber}`);
+                if (!response.ok) {
+                    compositionCache.set(key, null);
+                    return null;
+                }
+                const data = await response.json();
+                const wagonTypes = new Set();
+                for (const section of data.journeySections || []) {
+                    for (const wagon of section.wagons || []) {
+                        if (wagon.wagonType) wagonTypes.add(wagon.wagonType);
+                    }
+                }
+                if (wagonTypes.size === 0) {
+                    compositionCache.set(key, null);
+                    return null;
+                }
+                const accessible = ![...wagonTypes].some(t => INACCESSIBLE_UNIT_TYPES.has(t));
+                const result = { accessible, wagonTypes: [...wagonTypes] };
+                compositionCache.set(key, result);
+                return result;
+            } catch {
+                compositionCache.set(key, null);
+                return null;
+            }
+        }
+
+        function decorateAccessibility(container, displayTrains) {
+            displayTrains.forEach(dep => {
+                if (!dep.departureDate) return;
+                fetchComposition(dep.trainNumber, dep.departureDate).then(info => {
+                    if (!info || info.accessible) return;
+                    const icon = container.querySelector(
+                        `.accessibility-icon[data-train="${dep.trainNumber}"]`
+                    );
+                    if (!icon) return;
+                    icon.textContent = '🪜';
+                    icon.title = `Vanha juna, ei esteetön (${info.wagonTypes.join(', ')})`;
+                });
+            });
+        }
+
         async function fetchTrainPositions() {
             try {
                 const response = await fetch(`${API_BASE}/train-locations/latest/`, {
@@ -525,6 +584,7 @@
 
                     return {
                         trainNumber: train.trainNumber,
+                        departureDate: train.departureDate,
                         scheduledTime: departure.scheduledTime,
                         actualTime: departure.actualTime || departure.scheduledTime,
                         delay: delay,
@@ -597,12 +657,14 @@
                 return `
                     <div class="train-row${pastClass}">
                         <div class="train-time">${timeHtml}</div>
-                        <div class="train-destination">${getDestinationName(dep.destination)}</div>
+                        <div class="train-destination">${getDestinationName(dep.destination)}<span class="accessibility-icon" data-train="${dep.trainNumber}"></span></div>
                         <div class="train-position${posClass}">${posText}</div>
                         <div class="train-track">${dep.track}</div>
                     </div>
                 `;
             }).join('');
+
+            decorateAccessibility(container, displayTrains);
         }
 
         function countRDepartures(trains, stationCode) {
