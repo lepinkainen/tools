@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>A4 Poster Cropper</title>
+    <link rel="stylesheet" href="../static/common.css" />
+    <style>
+      /* Tool-specific styles */
+      #dropZone.dragover {
+        border-color: #00bfff;
+        box-shadow: 0 0 30px rgba(0, 191, 255, 0.3);
+        background: rgba(0, 191, 255, 0.05);
+      }
+
+      /* Editor layout: cropper on one side, controls on the other */
+      .editor {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 280px;
+        gap: 24px;
+        align-items: start;
+        margin: 20px 0;
+      }
+
+      @media (max-width: 760px) {
+        .editor {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .stage {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 200px;
+      }
+
+      /* The A4 crop frame. The preview canvas fills it exactly. */
+      .frame {
+        position: relative;
+        display: inline-block;
+        line-height: 0;
+        box-shadow: 0 0 25px rgba(0, 217, 255, 0.25);
+        background: #000;
+      }
+
+      #cropCanvas {
+        display: block;
+        cursor: grab;
+        touch-action: none; /* we handle panning/zooming ourselves */
+      }
+
+      #cropCanvas.grabbing {
+        cursor: grabbing;
+      }
+
+      /* Crop-mark border overlay so the user sees the exact print edge */
+      .frame::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        box-shadow: inset 0 0 0 1px rgba(255, 20, 147, 0.4);
+      }
+
+      .control-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 18px;
+      }
+
+      .control-group label {
+        font-size: 0.9em;
+        opacity: 0.9;
+      }
+
+      .seg {
+        display: flex;
+        gap: 0;
+      }
+
+      .seg button {
+        flex: 1;
+        margin: 0;
+        border-radius: 0;
+      }
+
+      .seg button:first-child {
+        border-top-left-radius: 5px;
+        border-bottom-left-radius: 5px;
+      }
+
+      .seg button:last-child {
+        border-top-right-radius: 5px;
+        border-bottom-right-radius: 5px;
+      }
+
+      .seg button.active {
+        background: rgba(0, 217, 255, 0.15);
+        border-color: #00d9ff;
+        color: #00d9ff;
+      }
+
+      input[type="range"] {
+        width: 100%;
+      }
+
+      .res-badge {
+        padding: 10px 12px;
+        border-radius: 5px;
+        font-size: 0.88em;
+        line-height: 1.4;
+        border: 1px solid transparent;
+      }
+
+      .res-badge.ok {
+        background: rgba(0, 255, 128, 0.08);
+        border-color: rgba(0, 255, 128, 0.4);
+      }
+
+      .res-badge.warn {
+        background: rgba(255, 180, 0, 0.1);
+        border-color: rgba(255, 180, 0, 0.6);
+        color: #ffd27f;
+      }
+
+      .res-badge.bad {
+        background: rgba(255, 60, 60, 0.12);
+        border-color: rgba(255, 60, 60, 0.6);
+        color: #ff9c9c;
+      }
+
+      .res-badge strong {
+        display: block;
+        font-size: 1.05em;
+        margin-bottom: 2px;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .hint {
+        font-size: 0.82em;
+        opacity: 0.7;
+        margin-top: 4px;
+      }
+
+      /* Hidden helper used to render the final A4 output for printing */
+      #printArea {
+        display: none;
+      }
+
+      @media print {
+        body {
+          background: #fff !important;
+        }
+        body * {
+          visibility: hidden;
+        }
+        #printArea,
+        #printArea * {
+          visibility: visible;
+        }
+        #printArea {
+          display: block;
+          position: absolute;
+          left: 0;
+          top: 0;
+          margin: 0;
+          padding: 0;
+        }
+        #printArea img {
+          display: block;
+        }
+      }
+    </style>
+    <link rel="icon" href="../favicon.ico" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>
+        <svg
+          class="tool-icon"
+          viewBox="0 0 40 40"
+          style="width: 50px; height: 50px"
+        >
+          <!-- A4 sheet -->
+          <rect
+            x="11"
+            y="5"
+            width="18"
+            height="26"
+            rx="1"
+            stroke="#00d9ff"
+            stroke-width="2"
+            fill="none"
+          />
+          <!-- Crop marks -->
+          <g stroke="#ff1493" stroke-width="2">
+            <line x1="8" y1="9" x2="8" y2="2" />
+            <line x1="8" y1="9" x2="15" y2="9" />
+            <line x1="32" y1="34" x2="32" y2="38" />
+            <line x1="32" y1="34" x2="25" y2="34" />
+          </g>
+        </svg>
+        A4 Poster Cropper
+      </h1>
+      <p>
+        Crop and frame a photo to exact A4 proportions for printing. Pan and
+        zoom to choose the visible area — the aspect ratio is locked, so the
+        image is never stretched.
+      </p>
+
+      <div id="dropZone" class="box">
+        <p>Drag &amp; drop an image, paste from clipboard, or click to select</p>
+        <p style="font-size: 0.9em; opacity: 0.8">
+          Supports JPEG, PNG, GIF, WebP &nbsp;•&nbsp; press Ctrl/⌘+V to paste
+        </p>
+      </div>
+      <input
+        type="file"
+        id="fileInput"
+        accept="image/*"
+        style="display: none"
+      />
+
+      <div
+        id="error"
+        style="
+          display: none;
+          color: #ff6b6b;
+          background: rgba(255, 0, 0, 0.1);
+          padding: 12px;
+          border-radius: 5px;
+          margin: 12px 0;
+        "
+      ></div>
+
+      <div id="editor" class="editor" style="display: none">
+        <div class="stage">
+          <div class="frame" id="frame">
+            <canvas id="cropCanvas"></canvas>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="control-group">
+            <label>Orientation</label>
+            <div class="seg" role="group" aria-label="A4 orientation">
+              <button
+                type="button"
+                id="orientPortrait"
+                onclick="setOrientation('portrait')"
+              >
+                Portrait
+              </button>
+              <button
+                type="button"
+                id="orientLandscape"
+                onclick="setOrientation('landscape')"
+              >
+                Landscape
+              </button>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label for="zoom">Zoom</label>
+            <input
+              type="range"
+              id="zoom"
+              min="1"
+              max="8"
+              step="0.01"
+              value="1"
+              aria-label="Zoom level"
+            />
+            <div class="hint">
+              Drag the image to reposition • scroll / pinch to zoom
+            </div>
+          </div>
+
+          <div id="resBadge" class="res-badge ok" role="status" aria-live="polite"></div>
+
+          <div class="actions">
+            <button type="button" onclick="printPoster()">🖨 Print A4</button>
+            <button type="button" class="secondary" onclick="downloadJpeg()">
+              Download JPEG
+            </button>
+          </div>
+          <div class="actions">
+            <button type="button" class="secondary" onclick="resetView()">
+              Reset view
+            </button>
+            <button type="button" class="secondary" onclick="chooseNewImage()">
+              New image
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Off-screen container used only when printing -->
+    <div id="printArea"><img id="printImg" alt="A4 poster ready to print" /></div>
+
+    <script>
+      // ---- A4 constants -------------------------------------------------
+      const A4 = {
+        ratio: 210 / 297, // width / height in portrait
+        wIn: 210 / 25.4, // 8.2677"
+        hIn: 297 / 25.4, // 11.6929"
+      };
+      const TARGET_DPI = 150; // warning threshold (user-chosen)
+      const MAX_DPI = 300; // cap output so files stay reasonable
+
+      // ---- State --------------------------------------------------------
+      let img = null; // HTMLImageElement of the source
+      let orientation = "portrait"; // 'portrait' | 'landscape'
+      let zoom = 1; // >= 1 (1 = image just covers the frame)
+      let ox = 0,
+        oy = 0; // top-left of displayed image relative to frame (CSS px)
+      let baseScale = 1; // scale at which the image exactly covers the frame
+      let FW = 0,
+        FH = 0; // frame display size in CSS px
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+
+      const canvas = document.getElementById("cropCanvas");
+      const ctx = canvas.getContext("2d");
+
+      // ---- Error helpers ------------------------------------------------
+      function showError(message) {
+        const el = document.getElementById("error");
+        el.textContent = message;
+        el.style.display = "block";
+      }
+      function hideError() {
+        document.getElementById("error").style.display = "none";
+      }
+
+      // ---- Input: file picker, drag & drop, paste ----------------------
+      const dropZone = document.getElementById("dropZone");
+      const fileInput = document.getElementById("fileInput");
+
+      dropZone.addEventListener("click", () => fileInput.click());
+      dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.classList.add("dragover");
+      });
+      dropZone.addEventListener("dragleave", () =>
+        dropZone.classList.remove("dragover")
+      );
+      dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropZone.classList.remove("dragover");
+        const file = Array.from(e.dataTransfer.files).find((f) =>
+          f.type.startsWith("image/")
+        );
+        if (file) loadFile(file);
+      });
+
+      fileInput.addEventListener("change", (e) => {
+        if (e.target.files[0]) loadFile(e.target.files[0]);
+        fileInput.value = ""; // allow re-selecting the same file
+      });
+
+      // Paste anywhere on the page
+      document.addEventListener("paste", (e) => {
+        const items = e.clipboardData && e.clipboardData.items;
+        if (!items) return;
+        for (const item of items) {
+          if (item.type.startsWith("image/")) {
+            const file = item.getAsFile();
+            if (file) {
+              loadFile(file);
+              e.preventDefault();
+            }
+            break;
+          }
+        }
+      });
+
+      function chooseNewImage() {
+        fileInput.click();
+      }
+
+      function loadFile(file) {
+        hideError();
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const image = new Image();
+          image.onload = () => {
+            img = image;
+            // Auto-suggest orientation from the source shape.
+            orientation = image.width >= image.height ? "landscape" : "portrait";
+            initEditor();
+          };
+          image.onerror = () => showError("Could not load that image file.");
+          image.src = e.target.result;
+        };
+        reader.onerror = () => showError("Could not read that file.");
+        reader.readAsDataURL(file);
+      }
+
+      // ---- Editor setup -------------------------------------------------
+      function initEditor() {
+        document.getElementById("editor").style.display = "grid";
+        layoutFrame();
+        zoom = 1;
+        zoomSlider.value = "1"; // keep the slider in sync with the reset zoom
+        centerImage();
+        updateOrientationButtons();
+        render();
+      }
+
+      // Compute the frame's display size to fit the available space.
+      function layoutFrame() {
+        const stage = document.querySelector(".stage");
+        // Available width inside the stage column (fallback for hidden state).
+        const availW = Math.max(220, stage.clientWidth || 360);
+        const maxH = Math.min(620, window.innerHeight * 0.72);
+
+        const frameRatio =
+          orientation === "portrait" ? A4.ratio : 1 / A4.ratio; // w/h
+
+        // Start from max height, then clamp to available width.
+        let h = maxH;
+        let w = h * frameRatio;
+        if (w > availW) {
+          w = availW;
+          h = w / frameRatio;
+        }
+        FW = Math.round(w);
+        FH = Math.round(h);
+
+        const frame = document.getElementById("frame");
+        frame.style.width = FW + "px";
+        frame.style.height = FH + "px";
+
+        canvas.style.width = FW + "px";
+        canvas.style.height = FH + "px";
+        canvas.width = Math.round(FW * dpr);
+        canvas.height = Math.round(FH * dpr);
+
+        if (img) {
+          // baseScale = "cover" scale: smallest scale that fills the frame.
+          baseScale = Math.max(FW / img.width, FH / img.height);
+        }
+      }
+
+      function displayedSize() {
+        const s = baseScale * zoom;
+        return { dw: img.width * s, dh: img.height * s };
+      }
+
+      function centerImage() {
+        const { dw, dh } = displayedSize();
+        ox = (FW - dw) / 2;
+        oy = (FH - dh) / 2;
+        clampOffsets();
+      }
+
+      // Keep the image covering the frame at all times (no empty edges).
+      function clampOffsets() {
+        const { dw, dh } = displayedSize();
+        ox = Math.min(0, Math.max(FW - dw, ox));
+        oy = Math.min(0, Math.max(FH - dh, oy));
+      }
+
+      // ---- Source-rectangle math (shared by preview + export) ----------
+      // Returns the region of the source image visible inside the frame,
+      // in source pixels.
+      function sourceRect() {
+        const s = baseScale * zoom;
+        return {
+          sx: -ox / s,
+          sy: -oy / s,
+          sw: FW / s,
+          sh: FH / s,
+        };
+      }
+
+      // ---- Render preview ----------------------------------------------
+      function render() {
+        if (!img) return;
+        clampOffsets();
+        const { sx, sy, sw, sh } = sourceRect();
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.imageSmoothingQuality = "high";
+        ctx.clearRect(0, 0, FW, FH);
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, FW, FH);
+        updateResolution(sw);
+      }
+
+      // ---- Resolution warning ------------------------------------------
+      function widthInches() {
+        return orientation === "portrait" ? A4.wIn : A4.hIn;
+      }
+
+      function updateResolution(sw) {
+        const dpiAtTarget = sw / widthInches(); // effective DPI at A4 size
+        const out = outputSize(sw);
+        const badge = document.getElementById("resBadge");
+        const dpiTxt = Math.round(dpiAtTarget);
+
+        let cls, msg;
+        if (dpiAtTarget >= MAX_DPI) {
+          cls = "ok";
+          msg = `Crisp at A4 — plenty of detail.`;
+        } else if (dpiAtTarget >= TARGET_DPI) {
+          cls = "ok";
+          msg = `Good for A4 printing.`;
+        } else if (dpiAtTarget >= TARGET_DPI * 0.66) {
+          cls = "warn";
+          msg = `Below ${TARGET_DPI} DPI — may look soft up close. Zoom out or use a larger image.`;
+        } else {
+          cls = "bad";
+          msg = `Too low for a sharp A4 print (need ~${TARGET_DPI} DPI). Zoom out or use a higher-resolution image.`;
+        }
+
+        badge.className = "res-badge " + cls;
+        badge.innerHTML =
+          `<strong>${dpiTxt} DPI at A4</strong>` +
+          `Output: ${out.w} × ${out.h} px<br>${msg}`;
+      }
+
+      // Output pixel size: native crop resolution, capped at MAX_DPI so files
+      // stay reasonable. Never upscales beyond what the source provides.
+      function outputSize(sw) {
+        const maxW = Math.round(widthInches() * MAX_DPI);
+        const w = Math.min(Math.round(sw), maxW);
+        const h = Math.round((w * FH) / FW);
+        return { w: Math.max(1, w), h: Math.max(1, h) };
+      }
+
+      // Render the final poster to an offscreen canvas at print resolution.
+      function renderOutput() {
+        const { sx, sy, sw, sh } = sourceRect();
+        const { w, h } = outputSize(sw);
+        const out = document.createElement("canvas");
+        out.width = w;
+        out.height = h;
+        const octx = out.getContext("2d");
+        octx.imageSmoothingEnabled = true;
+        octx.imageSmoothingQuality = "high";
+        octx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
+        return out;
+      }
+
+      // ---- Orientation --------------------------------------------------
+      function setOrientation(o) {
+        if (o === orientation || !img) return;
+        orientation = o;
+        layoutFrame();
+        zoom = 1;
+        document.getElementById("zoom").value = "1";
+        centerImage();
+        updateOrientationButtons();
+        render();
+      }
+
+      function updateOrientationButtons() {
+        document
+          .getElementById("orientPortrait")
+          .classList.toggle("active", orientation === "portrait");
+        document
+          .getElementById("orientLandscape")
+          .classList.toggle("active", orientation === "landscape");
+      }
+
+      // ---- Zoom (slider, wheel, pinch) ---------------------------------
+      const zoomSlider = document.getElementById("zoom");
+      zoomSlider.addEventListener("input", () => {
+        applyZoom(parseFloat(zoomSlider.value), FW / 2, FH / 2);
+      });
+
+      // Zoom while keeping the point under (px,py) — in frame CSS px — fixed.
+      function applyZoom(newZoom, px, py) {
+        newZoom = Math.min(8, Math.max(1, newZoom));
+        const s0 = baseScale * zoom;
+        const s1 = baseScale * newZoom;
+        // Source coord currently under the anchor point.
+        const srcX = (px - ox) / s0;
+        const srcY = (py - oy) / s0;
+        zoom = newZoom;
+        // Reposition so that same source coord stays under the anchor.
+        ox = px - srcX * s1;
+        oy = py - srcY * s1;
+        zoomSlider.value = String(zoom);
+        clampOffsets();
+        render();
+      }
+
+      canvas.addEventListener(
+        "wheel",
+        (e) => {
+          e.preventDefault();
+          const rect = canvas.getBoundingClientRect();
+          const px = e.clientX - rect.left;
+          const py = e.clientY - rect.top;
+          const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
+          applyZoom(zoom * factor, px, py);
+        },
+        { passive: false }
+      );
+
+      // ---- Pointer drag + pinch ----------------------------------------
+      const pointers = new Map();
+      let dragStart = null; // { ox, oy, px, py }
+      let pinchStart = null; // { dist, zoom, cx, cy }
+
+      canvas.addEventListener("pointerdown", (e) => {
+        canvas.setPointerCapture(e.pointerId);
+        pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        canvas.classList.add("grabbing");
+
+        if (pointers.size === 1) {
+          dragStart = { ox, oy, px: e.clientX, py: e.clientY };
+        } else if (pointers.size === 2) {
+          dragStart = null;
+          const pts = [...pointers.values()];
+          const rect = canvas.getBoundingClientRect();
+          pinchStart = {
+            dist: distance(pts[0], pts[1]),
+            zoom,
+            cx: (pts[0].x + pts[1].x) / 2 - rect.left,
+            cy: (pts[0].y + pts[1].y) / 2 - rect.top,
+          };
+        }
+      });
+
+      canvas.addEventListener("pointermove", (e) => {
+        if (!pointers.has(e.pointerId)) return;
+        pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+        if (pointers.size === 2 && pinchStart) {
+          const pts = [...pointers.values()];
+          const d = distance(pts[0], pts[1]);
+          applyZoom(
+            (pinchStart.zoom * d) / pinchStart.dist,
+            pinchStart.cx,
+            pinchStart.cy
+          );
+        } else if (dragStart) {
+          ox = dragStart.ox + (e.clientX - dragStart.px);
+          oy = dragStart.oy + (e.clientY - dragStart.py);
+          render();
+        }
+      });
+
+      function endPointer(e) {
+        pointers.delete(e.pointerId);
+        if (pointers.size < 2) pinchStart = null;
+        if (pointers.size === 0) {
+          dragStart = null;
+          canvas.classList.remove("grabbing");
+        } else if (pointers.size === 1) {
+          // Resume single-finger drag from the remaining pointer.
+          const p = [...pointers.values()][0];
+          dragStart = { ox, oy, px: p.x, py: p.y };
+        }
+      }
+      canvas.addEventListener("pointerup", endPointer);
+      canvas.addEventListener("pointercancel", endPointer);
+
+      function distance(a, b) {
+        return Math.hypot(a.x - b.x, a.y - b.y);
+      }
+
+      // ---- Reset --------------------------------------------------------
+      function resetView() {
+        if (!img) return;
+        zoom = 1;
+        zoomSlider.value = "1";
+        centerImage();
+        render();
+      }
+
+      // ---- Export: download + print ------------------------------------
+      function downloadJpeg() {
+        if (!img) return;
+        const out = renderOutput();
+        out.toBlob(
+          (blob) => {
+            if (!blob) {
+              showError("Failed to render the image.");
+              return;
+            }
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `a4-poster-${orientation}-${Date.now()}.jpg`;
+            a.click();
+            URL.revokeObjectURL(url);
+          },
+          "image/jpeg",
+          0.95
+        );
+      }
+
+      function printPoster() {
+        if (!img) return;
+        const out = renderOutput();
+        const dataUrl = out.toDataURL("image/jpeg", 0.95);
+        const printImg = document.getElementById("printImg");
+
+        // Size the printed image to exactly one A4 page in the chosen
+        // orientation, with no page margins.
+        const wmm = orientation === "portrait" ? 210 : 297;
+        const hmm = orientation === "portrait" ? 297 : 210;
+        printImg.style.width = wmm + "mm";
+        printImg.style.height = hmm + "mm";
+
+        // Set the @page size dynamically for correct orientation.
+        let pageStyle = document.getElementById("pageStyle");
+        if (!pageStyle) {
+          pageStyle = document.createElement("style");
+          pageStyle.id = "pageStyle";
+          document.head.appendChild(pageStyle);
+        }
+        pageStyle.textContent = `@page { size: A4 ${orientation}; margin: 0; }`;
+
+        printImg.onload = () => {
+          window.print();
+        };
+        printImg.src = dataUrl;
+      }
+
+      // Re-fit the frame if the window is resized while editing.
+      let resizeTimer = null;
+      window.addEventListener("resize", () => {
+        if (!img) return;
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+          // Preserve the current crop center across the relayout.
+          const s0 = baseScale * zoom;
+          const cx = (FW / 2 - ox) / s0;
+          const cy = (FH / 2 - oy) / s0;
+          layoutFrame();
+          const s1 = baseScale * zoom;
+          ox = FW / 2 - cx * s1;
+          oy = FH / 2 - cy * s1;
+          render();
+        }, 150);
+      });
+    </script>
+
+    <!-- Load graphics utilities -->
+    <script src="../static/graphics.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        initGraphics({
+          circuits: true,
+          scanLines: false,
+          dataStream: false,
+          promptIcons: false,
+        });
+      });
+    </script>
+    <script src="../static/theme-switcher.js"></script>
+  </body>
+</html>
