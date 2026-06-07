@@ -48,6 +48,13 @@
         display: block;
         cursor: grab;
         touch-action: none; /* we handle panning/zooming ourselves */
+        /* Override common.css canvas defaults that would offset the image
+           inside the frame and leave a strip of the frame background showing. */
+        margin: 0;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+        max-width: none;
       }
 
       #cropCanvas.grabbing {
