@@ -164,15 +164,19 @@
       }
 
       @media print {
-        body {
+        html, body {
           background: #fff !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          min-height: 0 !important;
+          width: auto !important;
+          height: auto !important;
         }
-        body * {
-          visibility: hidden;
-        }
-        #printArea,
-        #printArea * {
-          visibility: visible;
+        /* Remove non-print content from the flow entirely. visibility:hidden
+           would leave their layout boxes behind, and the editor's natural
+           height overflows landscape A4 (210mm) into a second page. */
+        body > *:not(#printArea) {
+          display: none !important;
         }
         #printArea {
           display: block;
@@ -182,8 +186,16 @@
           margin: 0;
           padding: 0;
         }
+        /* common.css gives <img> a border, margin, box-shadow and max-width
+           that would push the A4-sized print image past one page. Reset them. */
         #printArea img {
           display: block;
+          margin: 0 !important;
+          padding: 0 !important;
+          border: 0 !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
+          max-width: none !important;
         }
       }
     </style>
@@ -222,6 +234,12 @@
         Crop and frame a photo to exact A4 proportions for printing. Pan and
         zoom to choose the visible area — the aspect ratio is locked, so the
         image is never stretched.
+      </p>
+      <p style="font-size: 0.85em; opacity: 0.8">
+        <strong style="color: #ffd27f">Note:</strong> printing has been verified
+        in Chrome. Safari ignores the page <code>size</code> directive and
+        leaves a white border in landscape — use Chrome (or a Chromium-based
+        browser) for edge-to-edge printing.
       </p>
 
       <div id="dropZone" class="box">
