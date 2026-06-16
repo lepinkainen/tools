@@ -577,8 +577,13 @@
                     const destination = lastStop ? lastStop.stationShortCode : '?';
 
                     const scheduledTime = new Date(departure.scheduledTime);
-                    const actualTime = departure.actualTime ? new Date(departure.actualTime) : scheduledTime;
                     const delay = departure.differenceInMinutes || 0;
+                    // Expected departure: recorded actual time once the train has
+                    // departed, otherwise the scheduled time shifted by the live
+                    // delay estimate. This matches the adjusted time shown on the row.
+                    const expectedTime = departure.actualTime
+                        ? new Date(departure.actualTime)
+                        : new Date(scheduledTime.getTime() + delay * 60 * 1000);
 
                     return {
                         trainNumber: train.trainNumber,
@@ -589,12 +594,14 @@
                         track: departure.commercialTrack || '-',
                         destination: destination,
                         cancelled: train.cancelled || departure.cancelled,
-                        // Effective departure: actual/estimated time + grace period
-                        effectiveDeparture: new Date(actualTime.getTime() + graceMs)
+                        // Effective departure: expected departure time + grace period
+                        effectiveDeparture: new Date(expectedTime.getTime() + graceMs)
                     };
                 })
                 .filter(d => d !== null)
-                .sort((a, b) => new Date(a.scheduledTime) - new Date(b.scheduledTime));
+                // Order by effective departure so delayed trains sit where they
+                // actually leave, consistent with the past/future split below.
+                .sort((a, b) => a.effectiveDeparture - b.effectiveDeparture);
 
             // Update debug panel with filtered data
             debugPanel.textContent = JSON.stringify(allDepartures.map(d => ({
