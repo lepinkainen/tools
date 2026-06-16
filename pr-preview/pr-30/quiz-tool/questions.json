@@ -1,0 +1,412 @@
+{
+  "title": "Jouluinen Tietokilpailu",
+  "subtitle": "Christmas Knowledge Quiz",
+  "questions": [
+    {
+      "id": 1,
+      "category": "math",
+      "categoryName": "Matematiikka",
+      "question": "Joulupukilla on 156 lahjaa jaettavana tasan 12 taloon. Montako lahjaa tulee jokaiseen taloon?",
+      "type": "text",
+      "answers": [
+        "13",
+        "kolmetoista"
+      ],
+      "hint": "Jaa 156 kahdellatoista."
+    },
+    {
+      "id": 2,
+      "category": "swedish",
+      "categoryName": "Ruotsi",
+      "question": "Miten sanotaan ruotsiksi 'Hyvää joulua'?",
+      "type": "text",
+      "answers": [
+        "god jul",
+        "god jul!"
+      ],
+      "hint": "God..."
+    },
+    {
+      "id": 3,
+      "category": "biology",
+      "categoryName": "Biologia",
+      "question": "Mitä eläimen talviuni tarkoittaa?",
+      "type": "multiple",
+      "options": [
+        "Eläin muuttaa etelään talveksi",
+        "Eläimen aineenvaihdunta hidastuu ja se säästää energiaa",
+        "Eläin syö talvella tavallista enemmän",
+        "Eläin vaihtaa väriä talven ajaksi"
+      ],
+      "correctIndex": 1,
+      "hint": "Liittyy energian säästämiseen."
+    },
+    {
+      "id": 4,
+      "category": "english",
+      "categoryName": "Englanti",
+      "question": "Käännä englanniksi: 'Ulkona sataa lunta ja on liukasta.'",
+      "type": "text",
+      "answers": [
+        "it is snowing outside and it is slippery",
+        "it's snowing outside and it's slippery",
+        "it is snowing outside and it's slippery",
+        "it's snowing outside and it is slippery"
+      ],
+      "hint": "It's snowing... slippery = liukas."
+    },
+    {
+      "id": 5,
+      "category": "geography",
+      "categoryName": "Maantieto",
+      "question": "Mikä näistä on Suomen pohjoisin maakunta?",
+      "type": "multiple",
+      "options": [
+        "Uusimaa",
+        "Lappi",
+        "Pohjanmaa",
+        "Varsinais-Suomi"
+      ],
+      "correctIndex": 1,
+      "hint": "Joulupukin kotiseutu mainoksissa."
+    },
+    {
+      "id": 6,
+      "category": "home_economics",
+      "categoryName": "Kotitalous",
+      "question": "Miksi käsien pesu ennen ruoanlaittoa on tärkeää?",
+      "type": "multiple",
+      "options": [
+        "Se tekee ruoasta maukkaampaa",
+        "Se estää bakteerien ja virusten siirtymistä ruokaan",
+        "Se nopeuttaa ruoan kypsymistä",
+        "Se vähentää suolan tarvetta"
+      ],
+      "correctIndex": 1,
+      "hint": "Hygienia ja taudit."
+    },
+    {
+      "id": 7,
+      "category": "math",
+      "categoryName": "Matematiikka",
+      "question": "Laske: 7 × 8 = ?",
+      "type": "text",
+      "answers": [
+        "56",
+        "viisikymmentäkuusi"
+      ],
+      "hint": "7×7=49, lisää vielä yksi seiska."
+    },
+    {
+      "id": 8,
+      "category": "biology",
+      "categoryName": "Biologia",
+      "question": "Missä kasvin osassa yhteyttäminen tapahtuu pääasiassa?",
+      "type": "multiple",
+      "options": [
+        "Juurissa",
+        "Lehdissä",
+        "Kukassa",
+        "Siemenessä"
+      ],
+      "correctIndex": 1,
+      "hint": "Vihreä väri (lehtivihreä) auttaa."
+    },
+    {
+      "id": 9,
+      "category": "swedish",
+      "categoryName": "Ruotsi",
+      "question": "Mikä on ruotsiksi 'lumi'?",
+      "type": "text",
+      "answers": [
+        "snö",
+        "sno"
+      ],
+      "hint": "Sn..."
+    },
+    {
+      "id": 10,
+      "category": "english",
+      "categoryName": "Englanti",
+      "question": "Valitse oikea muoto: 'She ___ a present every Christmas.'",
+      "type": "multiple",
+      "options": [
+        "get",
+        "gets",
+        "getting",
+        "got"
+      ],
+      "correctIndex": 1,
+      "hint": "He/She/It + s (preesens)."
+    },
+    {
+      "id": 11,
+      "category": "geography",
+      "categoryName": "Maantieto",
+      "question": "Mikä on Suomen pääkaupunki?",
+      "type": "text",
+      "answers": [
+        "helsinki"
+      ],
+      "hint": "Alkaa H:lla."
+    },
+    {
+      "id": 12,
+      "category": "home_economics",
+      "categoryName": "Kotitalous",
+      "question": "Resepti on 4 annokselle ja tarvitsee 2 dl maitoa. Kuinka paljon maitoa tarvitaan 6 annokseen?",
+      "type": "text",
+      "answers": [
+        "3 dl",
+        "3",
+        "kolme desilitraa",
+        "kolme dl"
+      ],
+      "hint": "Kerro 2 dl luvulla 6/4."
+    },
+    {
+      "id": 13,
+      "category": "math",
+      "categoryName": "Matematiikka",
+      "question": "Mikä on kolmasosa luvusta 90?",
+      "type": "text",
+      "answers": [
+        "30",
+        "kolmekymmentä"
+      ],
+      "hint": "90 jaettuna kolmella."
+    },
+    {
+      "id": 14,
+      "category": "biology",
+      "categoryName": "Biologia",
+      "question": "Mikä on solun 'energiavoimala'?",
+      "type": "multiple",
+      "options": [
+        "Tuma",
+        "Mitokondrio",
+        "Ribosomi",
+        "Soluseinä"
+      ],
+      "correctIndex": 1,
+      "hint": "Tekee energiaa soluhengityksessä."
+    },
+    {
+      "id": 15,
+      "category": "swedish",
+      "categoryName": "Ruotsi",
+      "question": "Miten sanotaan ruotsiksi: 'Minä pidän joulusta'?",
+      "type": "text",
+      "answers": [
+        "jag gillar julen",
+        "jag tycker om julen"
+      ],
+      "hint": "Jag gillar... / Jag tycker om..."
+    },
+    {
+      "id": 16,
+      "category": "english",
+      "categoryName": "Englanti",
+      "question": "Mikä näistä tarkoittaa 'lahja'?",
+      "type": "multiple",
+      "options": [
+        "gift",
+        "glove",
+        "goat",
+        "glass"
+      ],
+      "correctIndex": 0,
+      "hint": "G-i-f-t."
+    },
+    {
+      "id": 17,
+      "category": "geography",
+      "categoryName": "Maantieto",
+      "question": "Mikä maa on Suomen länsinaapuri?",
+      "type": "text",
+      "answers": [
+        "ruotsi",
+        "sweden",
+        "sverige"
+      ],
+      "hint": "Siellä puhutaan ruotsia."
+    },
+    {
+      "id": 18,
+      "category": "home_economics",
+      "categoryName": "Kotitalous",
+      "question": "Mikä mauste kuuluu yleensä piparkakkumausteisiin ja maistuu lämpimän makealta?",
+      "type": "multiple",
+      "options": [
+        "Kaneli",
+        "Sitruunapippuri",
+        "Rakuuna",
+        "Rosmariini"
+      ],
+      "correctIndex": 0,
+      "hint": "Yleinen joulun tuoksu."
+    },
+    {
+      "id": 19,
+      "category": "math",
+      "categoryName": "Matematiikka",
+      "question": "Joulukalenterissa on 24 luukkua. Jos avaat 2 luukkua päivässä, monenko päivän jälkeen kaikki on avattu?",
+      "type": "text",
+      "answers": [
+        "12",
+        "kaksitoista"
+      ],
+      "hint": "24 jaettuna 2:lla."
+    },
+    {
+      "id": 20,
+      "category": "biology",
+      "categoryName": "Biologia",
+      "question": "Mikä kaasu syntyy soluhengityksessä (ihmisillä) ja poistuu uloshengityksessä?",
+      "type": "text",
+      "answers": [
+        "hiilidioksidi",
+        "co2",
+        "hiilidioksidia"
+      ],
+      "hint": "Sama kaasu, jota kasvit käyttävät yhteyttämisessä."
+    },
+    {
+      "id": 21,
+      "category": "swedish",
+      "categoryName": "Ruotsi",
+      "question": "Mitä tarkoittaa ruotsiksi 'julklapp'?",
+      "type": "text",
+      "answers": [
+        "joululahja",
+        "joululahjan",
+        "joululahjaa",
+        "lahja"
+      ],
+      "hint": "Jul = joulu."
+    },
+    {
+      "id": 22,
+      "category": "english",
+      "categoryName": "Englanti",
+      "question": "Täydennä: 'There are ___ cookies on the plate.' (monta, laskettavia)",
+      "type": "multiple",
+      "options": [
+        "much",
+        "many",
+        "a little",
+        "few"
+      ],
+      "correctIndex": 1,
+      "hint": "Countable plural."
+    },
+    {
+      "id": 23,
+      "category": "geography",
+      "categoryName": "Maantieto",
+      "question": "Mikä on Ruotsin pääkaupunki?",
+      "type": "multiple",
+      "options": [
+        "Oslo",
+        "Tukholma",
+        "Kööpenhamina",
+        "Helsinki"
+      ],
+      "correctIndex": 1,
+      "hint": "Stockholm suomeksi?"
+    },
+    {
+      "id": 24,
+      "category": "home_economics",
+      "categoryName": "Kotitalous",
+      "question": "Mikä näistä on esimerkki hyvistä hiilihydraateista arjessa?",
+      "type": "multiple",
+      "options": [
+        "Täysjyväleipä",
+        "Karkit",
+        "Limsa",
+        "Sipsit"
+      ],
+      "correctIndex": 0,
+      "hint": "Kuitua ja pitkäkestoista energiaa."
+    },
+    {
+      "id": 25,
+      "category": "math",
+      "categoryName": "Matematiikka",
+      "question": "Mikä on 15% luvusta 240?",
+      "type": "text",
+      "answers": [
+        "36",
+        "kolmekymmentäkuusi"
+      ],
+      "hint": "10% = 24 ja 5% = 12."
+    },
+    {
+      "id": 26,
+      "category": "biology",
+      "categoryName": "Biologia",
+      "question": "Mikä elin pumppaa verta ympäri kehoa?",
+      "type": "text",
+      "answers": [
+        "sydän",
+        "sydan"
+      ],
+      "hint": "Se lyö rinnassa."
+    },
+    {
+      "id": 27,
+      "category": "swedish",
+      "categoryName": "Ruotsi",
+      "question": "Miten sanotaan ruotsiksi 'punainen' (perusmuoto)?",
+      "type": "text",
+      "answers": [
+        "röd",
+        "rod"
+      ],
+      "hint": "Ääkkönen: ö."
+    },
+    {
+      "id": 28,
+      "category": "english",
+      "categoryName": "Englanti",
+      "question": "Mikä on englanniksi 'lumiukko'?",
+      "type": "text",
+      "answers": [
+        "snowman",
+        "a snowman"
+      ],
+      "hint": "Snow..."
+    },
+    {
+      "id": 29,
+      "category": "geography",
+      "categoryName": "Maantieto",
+      "question": "Mihin maanosaan Suomi kuuluu?",
+      "type": "multiple",
+      "options": [
+        "Eurooppa",
+        "Aasia",
+        "Afrikka",
+        "Etelä-Amerikka"
+      ],
+      "correctIndex": 0,
+      "hint": "Sama maanosa kuin Ruotsi ja Norja."
+    },
+    {
+      "id": 30,
+      "category": "home_economics",
+      "categoryName": "Kotitalous",
+      "question": "Mikä näistä on hyvä tapa ehkäistä ruokamyrkytystä kotona?",
+      "type": "multiple",
+      "options": [
+        "Säilytä liha huoneenlämmössä",
+        "Pese kädet ennen ruoanlaittoa",
+        "Käytä samaa leikkuulautaa kaikelle pesemättä sitä välillä",
+        "Maista raakaa kanaa varmistaaksesi maun"
+      ],
+      "correctIndex": 1,
+      "hint": "Hygienia ensin."
+    }
+  ]
+}
