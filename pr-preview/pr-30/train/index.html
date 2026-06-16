@@ -601,7 +601,9 @@
                     };
                 })
                 .filter(d => d !== null)
-                .sort((a, b) => new Date(a.scheduledTime) - new Date(b.scheduledTime));
+                // Order by effective departure so delayed trains sit where they
+                // actually leave, consistent with the past/future split below.
+                .sort((a, b) => a.effectiveDeparture - b.effectiveDeparture);
 
             // Update debug panel with filtered data
             debugPanel.textContent = JSON.stringify(allDepartures.map(d => ({
