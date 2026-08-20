@@ -157,6 +157,37 @@
             <option value="none">Keep original (pad)</option>
           </select>
         </label>
+
+        <label
+          for="imageFormat"
+          style="display: flex; align-items: center; gap: 8px; margin: 0"
+        >
+          Format:
+          <select id="imageFormat" onchange="updateQualityVisibility()">
+            <option value="jpeg" selected>JPEG</option>
+            <option value="webp">WebP</option>
+            <option value="png">PNG (lossless)</option>
+          </select>
+        </label>
+
+        <label
+          for="imageQuality"
+          id="qualityControl"
+          style="display: flex; align-items: center; gap: 8px; margin: 0"
+        >
+          Quality:
+          <input
+            type="range"
+            id="imageQuality"
+            min="0.4"
+            max="1"
+            step="0.05"
+            value="0.85"
+            style="width: 110px"
+            oninput="updateQualityLabel()"
+          />
+          <span id="qualityValue" style="min-width: 3ch">85%</span>
+        </label>
       </div>
 
       <div
@@ -496,9 +527,44 @@
         return layout;
       }
 
+      function formatSize(bytes) {
+        return bytes < 1024 * 1024
+          ? `${Math.round(bytes / 1024)} KB`
+          : `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+      }
+
       function getHeightMatchMode() {
         const select = document.getElementById("heightMatch");
         return select ? select.value : "shortest";
+      }
+
+      // PNG is lossless but huge for photographic joins - default to JPEG.
+      function getImageFormat() {
+        const select = document.getElementById("imageFormat");
+        const slider = document.getElementById("imageQuality");
+        const format = select ? select.value : "jpeg";
+        const quality = slider ? parseFloat(slider.value) : 0.85;
+
+        if (format === "png") {
+          return { mime: "image/png", ext: ".png", quality: undefined };
+        }
+        if (format === "webp") {
+          return { mime: "image/webp", ext: ".webp", quality };
+        }
+        return { mime: "image/jpeg", ext: ".jpg", quality };
+      }
+
+      function updateQualityVisibility() {
+        const select = document.getElementById("imageFormat");
+        const control = document.getElementById("qualityControl");
+        control.style.display = select.value === "png" ? "none" : "flex";
+      }
+
+      function updateQualityLabel() {
+        const slider = document.getElementById("imageQuality");
+        document.getElementById("qualityValue").textContent = `${Math.round(
+          parseFloat(slider.value) * 100
+        )}%`;
       }
 
       // Hash a file using SHA-256 (first 8 hex chars for brevity)
@@ -542,7 +608,8 @@
           const combinedHash = `${hashA}-${hashB}`;
           const isVideoOut =
             mediaA.tagName === "VIDEO" || mediaB.tagName === "VIDEO";
-          const ext = isVideoOut ? ".webm" : ".png";
+          const imageFormat = getImageFormat();
+          const ext = isVideoOut ? ".webm" : imageFormat.ext;
           outputFilename = `mjgen-${combinedHash}${ext}`;
 
           const [w1, h1] = getDimensions(mediaA);
@@ -573,12 +640,32 @@
             }
             canvas.width = layout.width;
             canvas.height = layout.height;
+
+            // JPEG has no alpha - padding would encode as black noise, so
+            // paint an explicit background first.
+            if (imageFormat.mime === "image/jpeg") {
+              ctx.fillStyle = "#000000";
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
             ctx.drawImage(mediaA, layout.a.x, layout.a.y, layout.a.w, layout.a.h);
             ctx.drawImage(mediaB, layout.b.x, layout.b.y, layout.b.w, layout.b.h);
 
-            const blob = await new Promise((resolve) =>
-              canvas.toBlob((b) => resolve(b), "image/png")
+            let blob = await new Promise((resolve) =>
+              canvas.toBlob(
+                (b) => resolve(b),
+                imageFormat.mime,
+                imageFormat.quality
+              )
             );
+
+            // toBlob silently falls back to PNG for unsupported types
+            if (blob && blob.type !== imageFormat.mime) {
+              showError(
+                `${imageFormat.mime} is not supported by this browser - saved as PNG instead`
+              );
+              outputFilename = `mjgen-${combinedHash}.png`;
+            }
 
             if (!blob) {
               throw new Error("Failed to encode image");
@@ -586,10 +673,10 @@
 
             outputBlob = blob;
             outputUrl = URL.createObjectURL(blob);
-            const sizeLabel = (blob.size / (1024 * 1024)).toFixed(2);
+            const sizeLabel = formatSize(blob.size);
             output.innerHTML = `
                     <img src="${outputUrl}" alt="Joined media output showing two images side by side" style="max-width: 100%; border-radius: 6px;">
-                    <p style="font-size: 0.85em; opacity: 0.8;">Estimated size: ${sizeLabel} MB</p>
+                    <p style="font-size: 0.85em; opacity: 0.8;">Estimated size: ${sizeLabel}</p>
                     <button id="downloadBtn" class="secondary" onclick="downloadOutput()">Download ${outputFilename}</button>
                 `;
           } else {
@@ -694,7 +781,7 @@
                 const blob = new Blob(chunks, { type: mimeType });
                 outputBlob = blob;
                 outputUrl = URL.createObjectURL(blob);
-                const sizeLabel = (blob.size / (1024 * 1024)).toFixed(2);
+                const sizeLabel = formatSize(blob.size);
                 output.innerHTML = "";
                 const videoElement = document.createElement("video");
                 videoElement.src = outputUrl;
@@ -707,7 +794,7 @@
                 const meta = document.createElement("p");
                 meta.style.fontSize = "0.85em";
                 meta.style.opacity = "0.8";
-                meta.textContent = `Estimated size: ${sizeLabel} MB`;
+                meta.textContent = `Estimated size: ${sizeLabel}`;
                 output.appendChild(meta);
                 const downloadBtn = document.createElement("button");
                 downloadBtn.id = "downloadBtn";

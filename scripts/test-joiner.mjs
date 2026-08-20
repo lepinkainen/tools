@@ -1,10 +1,11 @@
-// Verify MediaJoiner scales both images to a common height.
+// Verify MediaJoiner scales both images to a common height and honours the
+// selected output format.
 //
 // Drives a real Chrome via puppeteer-core: synthesizes two images with
 // different dimensions, feeds them through the page's file inputs, clicks
 // Generate, then measures the resulting PNG for each height-match mode.
 //
-// Usage: node scripts/test-joiner-heights.mjs
+// Usage: node scripts/test-joiner.mjs
 // Requires: Google Chrome.app installed.
 
 import { spawn } from "node:child_process";
@@ -28,7 +29,7 @@ function startServer() {
   );
 }
 
-async function runOnce(browser, mode) {
+async function runOnce(browser, mode, format = "png") {
   const page = await browser.newPage();
   page.on("pageerror", (e) => console.error("  page error:", e.message));
   await page.goto(URL_, { waitUntil: "domcontentloaded" });
@@ -65,6 +66,7 @@ async function runOnce(browser, mode) {
   );
 
   await page.select("#heightMatch", mode);
+  await page.select("#imageFormat", format);
   await page.evaluate(() => generate());
 
   await page.waitForFunction(
@@ -72,24 +74,43 @@ async function runOnce(browser, mode) {
     { timeout: 15000 },
   );
 
-  const dims = await page.evaluate(
+  const result = await page.evaluate(
     () =>
       new Promise((resolve) => {
         const img = new Image();
-        img.onload = () =>
-          resolve({ w: img.naturalWidth, h: img.naturalHeight });
+        img.onload = async () => {
+          const blob = await fetch(img.src).then((r) => r.blob());
+          resolve({
+            w: img.naturalWidth,
+            h: img.naturalHeight,
+            type: blob.type,
+            bytes: blob.size,
+            filename: document
+              .getElementById("downloadBtn")
+              .textContent.replace("Download ", "")
+              .trim(),
+          });
+        };
         img.src = document.querySelector("#output img").src;
       }),
   );
 
   await page.close();
-  return dims;
+  return result;
 }
 
 function check(name, actual, expected) {
   const ok = actual.w === expected.w && actual.h === expected.h;
   console.log(
     `${name}: ${ok ? "OK" : "FAIL"} (${actual.w}×${actual.h}, expected ${expected.w}×${expected.h})`,
+  );
+  return ok ? 0 : 1;
+}
+
+function checkFormat(name, actual, mime, ext) {
+  const ok = actual.type === mime && actual.filename.endsWith(ext);
+  console.log(
+    `${name}: ${ok ? "OK" : "FAIL"} (${actual.type}, ${actual.filename}, ${Math.round(actual.bytes / 1024)} KB)`,
   );
   return ok ? 0 : 1;
 }
@@ -121,6 +142,17 @@ async function main() {
       w: A.w + B.w,
       h: 300,
     });
+
+    // Output format follows the Format select, and dimensions are unaffected
+    const jpeg = await runOnce(browser, "shortest", "jpeg");
+    failed += check("jpeg dimensions", jpeg, { w: 500, h: 200 });
+    failed += checkFormat("jpeg format", jpeg, "image/jpeg", ".jpg");
+
+    const webp = await runOnce(browser, "shortest", "webp");
+    failed += checkFormat("webp format", webp, "image/webp", ".webp");
+
+    const png = await runOnce(browser, "shortest", "png");
+    failed += checkFormat("png format", png, "image/png", ".png");
   } finally {
     await browser.close();
     server.kill();
@@ -130,7 +162,7 @@ async function main() {
     console.error(`\n${failed} test(s) failed.`);
     process.exit(1);
   }
-  console.log("\nAll joiner height tests passed.");
+  console.log("\nAll joiner tests passed.");
 }
 
 main().catch((e) => {
