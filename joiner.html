@@ -145,6 +145,18 @@
         >
           Swap A ↔ B
         </button>
+
+        <label
+          for="heightMatch"
+          style="display: flex; align-items: center; gap: 8px; margin: 0"
+        >
+          Height:
+          <select id="heightMatch">
+            <option value="shortest" selected>Match shortest</option>
+            <option value="tallest">Match tallest</option>
+            <option value="none">Keep original (pad)</option>
+          </select>
+        </label>
       </div>
 
       <div
@@ -447,6 +459,48 @@
         }
       }
 
+      // Work out canvas size and per-media draw rects.
+      // "shortest"/"tallest" scale both sources to a common height so the
+      // join is not lopsided; "none" keeps native sizes and pads vertically.
+      function computeLayout(w1, h1, w2, h2, mode, forceEven) {
+        let layout;
+
+        if (mode === "none") {
+          const maxH = Math.max(h1, h2);
+          layout = {
+            width: w1 + w2,
+            height: maxH,
+            a: { x: 0, y: (maxH - h1) / 2, w: w1, h: h1 },
+            b: { x: w1, y: (maxH - h2) / 2, w: w2, h: h2 },
+          };
+        } else {
+          const targetH = Math.round(
+            mode === "tallest" ? Math.max(h1, h2) : Math.min(h1, h2)
+          );
+          const aW = Math.max(1, Math.round((w1 * targetH) / h1));
+          const bW = Math.max(1, Math.round((w2 * targetH) / h2));
+          layout = {
+            width: aW + bW,
+            height: targetH,
+            a: { x: 0, y: 0, w: aW, h: targetH },
+            b: { x: aW, y: 0, w: bW, h: targetH },
+          };
+        }
+
+        // Video encoders want even dimensions - grow the canvas, not the media
+        if (forceEven) {
+          layout.width += layout.width % 2;
+          layout.height += layout.height % 2;
+        }
+
+        return layout;
+      }
+
+      function getHeightMatchMode() {
+        const select = document.getElementById("heightMatch");
+        return select ? select.value : "shortest";
+      }
+
       // Hash a file using SHA-256 (first 8 hex chars for brevity)
       async function hashFile(file) {
         const buffer = await file.arrayBuffer();
@@ -493,11 +547,20 @@
 
           const [w1, h1] = getDimensions(mediaA);
           const [w2, h2] = getDimensions(mediaB);
-          if (w1 === 0 || w2 === 0) {
+          if (w1 === 0 || w2 === 0 || h1 === 0 || h2 === 0) {
             throw new Error(
               "Invalid media dimensions - could not read file dimensions"
             );
           }
+
+          const layout = computeLayout(
+            w1,
+            h1,
+            w2,
+            h2,
+            getHeightMatchMode(),
+            isVideoOut
+          );
 
           const output = document.getElementById("output");
 
@@ -508,11 +571,10 @@
             if (!ctx) {
               throw new Error("Failed to get 2D drawing context");
             }
-            const maxH = Math.max(h1, h2);
-            canvas.width = w1 + w2;
-            canvas.height = maxH;
-            ctx.drawImage(mediaA, 0, (maxH - h1) / 2);
-            ctx.drawImage(mediaB, w1, (maxH - h2) / 2);
+            canvas.width = layout.width;
+            canvas.height = layout.height;
+            ctx.drawImage(mediaA, layout.a.x, layout.a.y, layout.a.w, layout.a.h);
+            ctx.drawImage(mediaB, layout.b.x, layout.b.y, layout.b.w, layout.b.h);
 
             const blob = await new Promise((resolve) =>
               canvas.toBlob((b) => resolve(b), "image/png")
@@ -553,9 +615,8 @@
             if (!ctx) {
               throw new Error("Failed to get 2D drawing context");
             }
-            const maxH = Math.max(h1, h2);
-            canvas.width = w1 + w2;
-            canvas.height = maxH;
+            canvas.width = layout.width;
+            canvas.height = layout.height;
 
             if (typeof MediaRecorder === "undefined") {
               throw new Error("MediaRecorder is not supported in this browser");
@@ -691,8 +752,20 @@
                 if (mediaB.tagName === "VIDEO") mediaB.currentTime = t;
 
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(mediaA, 0, (maxH - h1) / 2);
-                ctx.drawImage(mediaB, w1, (maxH - h2) / 2);
+                ctx.drawImage(
+                  mediaA,
+                  layout.a.x,
+                  layout.a.y,
+                  layout.a.w,
+                  layout.a.h
+                );
+                ctx.drawImage(
+                  mediaB,
+                  layout.b.x,
+                  layout.b.y,
+                  layout.b.w,
+                  layout.b.h
+                );
 
                 if (clampedElapsed >= totalDuration) {
                   recorder.stop();
