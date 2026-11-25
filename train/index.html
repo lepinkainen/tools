@@ -193,6 +193,24 @@
             text-decoration: line-through;
         }
 
+        .train-row.cancelled-train {
+            background: rgba(248, 113, 113, 0.08);
+        }
+
+        .train-row.cancelled-train .train-time,
+        .train-row.cancelled-train .train-track {
+            color: #f87171;
+            text-decoration: line-through;
+        }
+
+        .cancelled-label {
+            margin-left: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #f87171;
+            text-transform: uppercase;
+        }
+
         .loading {
             text-align: center;
             padding: 2rem;
@@ -637,13 +655,23 @@
             })), null, 2);
 
             // Split into past and future trains based on effective departure time
-            const futureTrains = allDepartures.filter(d => d.effectiveDeparture > now && !d.cancelled);
+            // Cancelled trains stay in the future list so they are shown, but
+            // they never count as the "last departed" train.
+            const futureTrains = allDepartures.filter(d => d.effectiveDeparture > now);
             const pastTrains = allDepartures.filter(d => d.effectiveDeparture <= now && !d.cancelled);
 
-            // Take the last past train (most recent departure) and up to limit future trains
+            // Take the last past train (most recent departure) and up to limit
+            // running future trains; cancelled ones in between are shown too
+            // but don't use up the limit.
             const lastPastTrain = pastTrains.length > 0 ? pastTrains[pastTrains.length - 1] : null;
             const futureLimit = includePastTrain && lastPastTrain ? Math.max(limit - 1, 0) : limit;
-            const displayFuture = futureTrains.slice(0, futureLimit);
+            const displayFuture = [];
+            let runningCount = 0;
+            for (const d of futureTrains) {
+                if (runningCount >= futureLimit) break;
+                displayFuture.push(d);
+                if (!d.cancelled) runningCount++;
+            }
 
             // Build display list
             const displayTrains = [];
@@ -671,18 +699,22 @@
 
             container.innerHTML = displayTrains.map(dep => {
                 const pastClass = dep.isPast ? ' past-train' : '';
-                const adjustedTime = dep.delay > 0 ? formatTime(getAdjustedTime(dep.scheduledTime, dep.delay)) : null;
+                const cancelledClass = dep.cancelled ? ' cancelled-train' : '';
+                const adjustedTime = !dep.cancelled && dep.delay > 0 ? formatTime(getAdjustedTime(dep.scheduledTime, dep.delay)) : null;
                 const timeHtml = adjustedTime
                     ? `<span class="train-time-original">${formatTime(dep.scheduledTime)}</span><span class="train-time-adjusted">${adjustedTime}</span>`
                     : formatTime(dep.scheduledTime);
 
-                const { text: posText, near: posNear } = formatPosition(dep.trainNumber);
+                const { text: posText, near: posNear } = dep.cancelled
+                    ? { text: '', near: false }
+                    : formatPosition(dep.trainNumber);
+                const cancelledHtml = dep.cancelled ? '<span class="cancelled-label">Peruttu</span>' : '';
                 const posClass = posNear ? ' near' : '';
 
                 return `
-                    <div class="train-row${pastClass}">
+                    <div class="train-row${pastClass}${cancelledClass}">
                         <div class="train-time">${timeHtml}</div>
-                        <div class="train-destination">${getDestinationName(dep.destination)}<span class="accessibility-icon" data-train="${dep.trainNumber}"></span></div>
+                        <div class="train-destination">${getDestinationName(dep.destination)}<span class="accessibility-icon" data-train="${dep.trainNumber}"></span>${cancelledHtml}</div>
                         <div class="train-position${posClass}">${posText}</div>
                         <div class="train-track">${dep.track}</div>
                     </div>
